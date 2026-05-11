@@ -1092,7 +1092,10 @@
   <div id="results">
     <div class="stats-row" id="stats-row"></div>
 
-    <!-- Action bar -->
+    <!-- Summary cards rendered here by JS -->
+    <div id="out"></div>
+
+    <!-- Action bar (below summary) -->
     <div class="sum-action-bar ani" style="animation-delay:.05s" id="sum-action-bar">
       <button class="act-btn" id="like-btn"    onclick="doLike()">👍 Like</button>
       <button class="act-btn" id="dislike-btn" onclick="doDislike()">👎 Dislike</button>
@@ -1102,7 +1105,7 @@
       <button class="act-btn" onclick="resetApp()" style="margin-left:auto">🔄 New Summary</button>
     </div>
 
-    <!-- AI Chat Window -->
+    <!-- AI Chat Window (below action bar) -->
     <div class="chat-window ani" style="animation-delay:.1s" id="chat-window">
       <div class="chat-hdr" onclick="toggleChat()">
         <div class="chat-hdr-icon">🤖</div>
@@ -1134,7 +1137,6 @@
         </div>
       </div>
     </div>
-    <div id="out"></div>
   </div>
 </main>
 
