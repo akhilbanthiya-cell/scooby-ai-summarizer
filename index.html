@@ -5,6 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <title>Scooby — AI Video Summarizer</title>
 
+  <!-- Google Identity Services -->
+  <script src="https://accounts.google.com/gsi/client" async></script>
+
   <!-- PWA -->
   <link rel="manifest" href="manifest.json" />
   <meta name="theme-color" content="#7C3AED" />
@@ -96,6 +99,16 @@
       transition: all .2s; white-space: nowrap;
     }
     .btn-ghost:hover { border-color: var(--accent); color: var(--txt); }
+
+    /* ── Google User Chip ───────────────────────────────────────── */
+    #g-user-chip {
+      display: none; align-items: center; gap: 7px;
+      background: var(--card); border: 1px solid var(--border);
+      padding: 4px 10px 4px 4px; border-radius: 50px; cursor: default;
+    }
+    #g-user-chip img { width: 26px; height: 26px; border-radius: 50%; }
+    #g-user-chip span { font-size: 12px; font-weight: 600; max-width: 110px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    #g-signin-wrap { display: block; }
 
     /* ── Main ───────────────────────────────────────────────────── */
     main { max-width: 900px; margin: 0 auto; padding: 44px 20px 100px; position: relative; z-index: 1; }
@@ -740,7 +753,14 @@
         <div class="logo-sub">AI Video Summarizer</div>
       </div>
     </div>
-    <div style="display:flex;gap:8px">
+    <div style="display:flex;gap:8px;align-items:center">
+      <!-- Google Sign-In -->
+      <div id="g-signin-wrap"></div>
+      <div id="g-user-chip">
+        <img id="g-avatar" src="" alt="" />
+        <span id="g-name"></span>
+        <button onclick="gSignOut()" style="background:none;border:none;color:var(--txt3);font-size:11px;cursor:pointer;padding:2px 4px;" title="Sign out">✕</button>
+      </div>
       <button class="btn-ghost" onclick="openChromeModal()" style="border-color:rgba(66,133,244,.45);color:#7eb4ff;">🧩 Add to Chrome</button>
       <button class="btn-ghost" id="api-key-btn" onclick="openApiKeyModal()">⚙ API Key</button>
       <button class="btn-ghost" onclick="openHistory()">🕒 History</button>
@@ -2256,6 +2276,129 @@ updateKeyBadge();
     if (btn) btn.scrollIntoView({ behavior: 'smooth', block: 'center' });
   }, 400);
 })();
+</script>
+
+<!-- Google Sign-In + Drive History Sync -->
+<script>
+const GOOGLE_CLIENT_ID = 'YOUR_GOOGLE_CLIENT_ID'; // ← Replace after Google Cloud setup
+const DRIVE_FILE_NAME  = 'scooby-history.json';
+
+/* Initialize GIS on page load */
+window.addEventListener('load', () => {
+  if (GOOGLE_CLIENT_ID === 'YOUR_GOOGLE_CLIENT_ID') return;
+  google.accounts.id.initialize({
+    client_id: GOOGLE_CLIENT_ID,
+    callback: onGoogleCredential,
+    auto_select: true,
+  });
+  google.accounts.id.renderButton(document.getElementById('g-signin-wrap'), {
+    theme: 'outline', size: 'small', shape: 'pill', text: 'signin_with',
+  });
+  const saved = localStorage.getItem('scooby_google_user');
+  if (saved) showGUserChip(JSON.parse(saved));
+  else google.accounts.id.prompt();
+});
+
+function onGoogleCredential(resp) {
+  const p = JSON.parse(atob(resp.credential.split('.')[1]));
+  const user = { name: p.name, email: p.email, picture: p.picture, token: resp.credential };
+  localStorage.setItem('scooby_google_user', JSON.stringify(user));
+  showGUserChip(user);
+  toast('✅ Signed in as ' + p.name.split(' ')[0], 'ok');
+  syncHistoryFromDrive(resp.credential);
+}
+
+function showGUserChip(user) {
+  document.getElementById('g-signin-wrap').style.display = 'none';
+  const chip = document.getElementById('g-user-chip');
+  document.getElementById('g-avatar').src = user.picture || '';
+  document.getElementById('g-name').textContent = user.name || user.email;
+  chip.style.display = 'flex';
+}
+
+function gSignOut() {
+  localStorage.removeItem('scooby_google_user');
+  document.getElementById('g-user-chip').style.display = 'none';
+  document.getElementById('g-signin-wrap').style.display = 'block';
+  if (typeof google !== 'undefined') google.accounts.id.disableAutoSelect();
+  toast('Signed out', 'ok');
+}
+
+/* ── Drive sync helpers ── */
+async function getAccessToken(idToken) {
+  /* Exchange Google ID token for an access token via OAuth2 token endpoint */
+  const r = await fetch('https://oauth2.googleapis.com/token', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({
+      grant_type: 'urn:ietf:params:oauth:grant-type:jwt-bearer',
+      assertion:  idToken,
+    }),
+  });
+  const data = await r.json();
+  return data.access_token;
+}
+
+async function syncHistoryFromDrive(idToken) {
+  try {
+    const token = await getAccessToken(idToken);
+    if (!token) return;
+    /* Find the history file in Drive AppData */
+    const search = await fetch(
+      `https://www.googleapis.com/drive/v3/files?spaces=appDataFolder&q=name='${DRIVE_FILE_NAME}'&fields=files(id)`,
+      { headers: { Authorization: 'Bearer ' + token } }
+    );
+    const { files } = await search.json();
+    if (!files || files.length === 0) { pushHistoryToDrive(token); return; }
+    const fileId = files[0].id;
+    const content = await fetch(
+      `https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`,
+      { headers: { Authorization: 'Bearer ' + token } }
+    );
+    const driveHistory = await content.json();
+    /* Merge: combine Drive + local, deduplicate by id, keep newest 50 */
+    const local = JSON.parse(localStorage.getItem('scooby_history') || '[]');
+    const merged = [...driveHistory, ...local]
+      .filter((h, i, arr) => arr.findIndex(x => x.id === h.id) === i)
+      .slice(0, 50);
+    localStorage.setItem('scooby_history', JSON.stringify(merged));
+    localStorage.setItem('scooby_drive_token', token);
+    localStorage.setItem('scooby_drive_file_id', fileId);
+    toast('☁️ History synced from Google Drive', 'ok');
+  } catch(e) { console.warn('[Scooby Drive]', e); }
+}
+
+async function pushHistoryToDrive(token) {
+  try {
+    const history = localStorage.getItem('scooby_history') || '[]';
+    const existingId = localStorage.getItem('scooby_drive_file_id');
+    const url = existingId
+      ? `https://www.googleapis.com/upload/drive/v3/files/${existingId}?uploadType=media`
+      : 'https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart';
+    if (!existingId) {
+      const meta = { name: DRIVE_FILE_NAME, parents: ['appDataFolder'] };
+      const form = new FormData();
+      form.append('metadata', new Blob([JSON.stringify(meta)], { type: 'application/json' }));
+      form.append('file', new Blob([history], { type: 'application/json' }));
+      const r = await fetch(url, { method: 'POST', headers: { Authorization: 'Bearer ' + token }, body: form });
+      const f = await r.json();
+      if (f.id) localStorage.setItem('scooby_drive_file_id', f.id);
+    } else {
+      await fetch(url, {
+        method: 'PATCH',
+        headers: { Authorization: 'Bearer ' + token, 'Content-Type': 'application/json' },
+        body: history,
+      });
+    }
+  } catch(e) { console.warn('[Scooby Drive push]', e); }
+}
+
+/* Auto-push to Drive when a new summary is saved */
+const _origSaveHistory = typeof saveToHistory === 'function' ? saveToHistory : null;
+document.addEventListener('scooby:historySaved', () => {
+  const token = localStorage.getItem('scooby_drive_token');
+  if (token) pushHistoryToDrive(token);
+});
 </script>
 </body>
 </html>

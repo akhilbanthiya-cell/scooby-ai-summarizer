@@ -1,0 +1,581 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Scooby — AI Video Summarizer</title>
+  <meta name="description" content="Summarize any video, call, or meeting in seconds using AI. Works on Chrome, Android & iPhone." />
+  <link rel="icon" type="image/svg+xml" href="scooby-icon-full.svg" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  <script src="https://accounts.google.com/gsi/client" async></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:        #0B1120;
+      --bg2:       #111827;
+      --accent:    #7C3AED;
+      --accent-lt: #9F67FF;
+      --green:     #22C55E;
+      --chrome:    #4285F4;
+      --txt:       #F1F5F9;
+      --txt2:      #94A3B8;
+      --txt3:      #64748B;
+      --border:    rgba(255,255,255,.08);
+      --card:      rgba(255,255,255,.04);
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: var(--bg);
+      color: var(--txt);
+      font-family: 'Inter', -apple-system, sans-serif;
+      line-height: 1.6;
+      overflow-x: hidden;
+    }
+
+    /* ── Noise overlay ── */
+    body::before {
+      content: '';
+      position: fixed; inset: 0; z-index: 0; pointer-events: none;
+      background:
+        radial-gradient(ellipse 80% 60% at 10% 5%,  rgba(124,58,237,.18) 0%, transparent 55%),
+        radial-gradient(ellipse 60% 50% at 90% 90%, rgba(168,85,247,.10) 0%, transparent 55%),
+        radial-gradient(ellipse 50% 40% at 50% 50%, rgba(66,133,244,.06) 0%, transparent 60%);
+    }
+
+    /* ── NAV ── */
+    nav {
+      position: sticky; top: 0; z-index: 100;
+      background: rgba(11,17,32,.90); backdrop-filter: blur(20px);
+      border-bottom: 1px solid var(--border);
+      padding: 0 24px;
+    }
+    .nav-inner {
+      max-width: 1100px; margin: 0 auto; height: 64px;
+      display: flex; align-items: center; justify-content: space-between; gap: 16px;
+    }
+    .nav-logo { display: flex; align-items: center; gap: 10px; text-decoration: none; }
+    .nav-logo img { width: 36px; height: 36px; border-radius: 9px; object-fit: cover; }
+    .nav-logo-name {
+      font-size: 18px; font-weight: 800;
+      background: linear-gradient(135deg, #fff 0%, var(--accent-lt) 100%);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    }
+    .nav-right { display: flex; align-items: center; gap: 12px; }
+
+    /* Google Sign-In area */
+    #g-signin-btn { cursor: pointer; }
+    #user-chip {
+      display: none; align-items: center; gap: 8px;
+      background: var(--card); border: 1px solid var(--border);
+      padding: 6px 12px 6px 6px; border-radius: 50px;
+    }
+    #user-chip img { width: 28px; height: 28px; border-radius: 50%; }
+    #user-chip span { font-size: 13px; font-weight: 600; max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    #user-signout {
+      background: none; border: none; color: var(--txt3); font-size: 12px;
+      cursor: pointer; padding: 2px 4px; border-radius: 4px;
+    }
+    #user-signout:hover { color: var(--txt); }
+
+    .btn-nav-app {
+      background: var(--accent); color: #fff;
+      padding: 8px 18px; border-radius: 8px; font-size: 13px; font-weight: 600;
+      text-decoration: none; border: none; cursor: pointer; white-space: nowrap;
+      transition: opacity .2s;
+    }
+    .btn-nav-app:hover { opacity: .85; }
+
+    /* ── HERO ── */
+    .hero {
+      position: relative; z-index: 1;
+      text-align: center; padding: 100px 24px 80px;
+      max-width: 780px; margin: 0 auto;
+    }
+    .hero-badge {
+      display: inline-flex; align-items: center; gap: 6px;
+      background: rgba(124,58,237,.15); border: 1px solid rgba(124,58,237,.35);
+      padding: 5px 14px; border-radius: 50px; font-size: 13px; font-weight: 600;
+      color: var(--accent-lt); margin-bottom: 28px;
+    }
+    .hero h1 {
+      font-size: clamp(36px, 7vw, 68px); font-weight: 900;
+      line-height: 1.08; letter-spacing: -1.5px; margin-bottom: 20px;
+    }
+    .hero h1 em {
+      font-style: normal;
+      background: linear-gradient(135deg, var(--accent-lt) 0%, #C084FC 50%, #818CF8 100%);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    }
+    .hero p {
+      font-size: clamp(16px, 2.5vw, 20px); color: var(--txt2);
+      max-width: 580px; margin: 0 auto 40px;
+    }
+    .hero-ctas { display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; }
+
+    .btn-chrome-cta {
+      display: inline-flex; align-items: center; gap: 10px;
+      background: linear-gradient(135deg, #4285F4 0%, #34A853 100%);
+      color: #fff; padding: 16px 32px; border-radius: 14px;
+      font-size: 17px; font-weight: 700; text-decoration: none; border: none; cursor: pointer;
+      box-shadow: 0 8px 32px rgba(66,133,244,.35);
+      transition: transform .2s, box-shadow .2s;
+    }
+    .btn-chrome-cta:hover { transform: translateY(-2px); box-shadow: 0 12px 40px rgba(66,133,244,.45); }
+
+    .btn-try-app {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: var(--card); border: 1px solid var(--border);
+      color: var(--txt); padding: 16px 28px; border-radius: 14px;
+      font-size: 17px; font-weight: 600; text-decoration: none;
+      transition: border-color .2s, background .2s;
+    }
+    .btn-try-app:hover { border-color: var(--accent); background: rgba(124,58,237,.08); }
+
+    .hero-note { margin-top: 18px; font-size: 13px; color: var(--txt3); }
+    .hero-note a { color: var(--accent-lt); text-decoration: none; }
+    .hero-note a:hover { text-decoration: underline; }
+
+    /* ── APP PREVIEW ── */
+    .preview-wrap {
+      position: relative; z-index: 1;
+      max-width: 900px; margin: 0 auto 100px;
+      padding: 0 24px;
+    }
+    .preview-frame {
+      background: #1A2540; border: 1px solid var(--border);
+      border-radius: 20px; overflow: hidden;
+      box-shadow: 0 40px 100px rgba(0,0,0,.6), 0 0 0 1px rgba(255,255,255,.06);
+    }
+    .preview-bar {
+      background: #111827; padding: 12px 16px;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .preview-dot { width: 12px; height: 12px; border-radius: 50%; }
+    .preview-dot:nth-child(1) { background: #EF4444; }
+    .preview-dot:nth-child(2) { background: #F59E0B; }
+    .preview-dot:nth-child(3) { background: #22C55E; }
+    .preview-url {
+      flex: 1; background: rgba(255,255,255,.06); border-radius: 6px;
+      padding: 4px 12px; font-size: 12px; color: var(--txt3); margin: 0 8px;
+    }
+    .preview-body { padding: 32px; min-height: 220px; }
+    .preview-tabs { display: flex; gap: 3px; background: rgba(0,0,0,.4); padding: 4px; border-radius: 10px; margin-bottom: 20px; width: fit-content; }
+    .preview-tab { padding: 7px 16px; border-radius: 7px; font-size: 13px; font-weight: 500; color: var(--txt2); }
+    .preview-tab.active { background: var(--accent); color: #fff; }
+    .preview-textarea {
+      background: rgba(0,0,0,.3); border: 1px solid var(--border);
+      border-radius: 10px; padding: 14px; font-size: 13px; color: var(--txt2);
+      width: 100%; height: 90px; line-height: 1.6;
+    }
+    .preview-summarize {
+      margin-top: 14px; display: flex; justify-content: flex-end; gap: 10px; align-items: center;
+    }
+    .preview-wc { font-size: 12px; color: var(--txt3); }
+    .preview-btn {
+      background: var(--accent); color: #fff; border: none; border-radius: 9px;
+      padding: 10px 22px; font-size: 14px; font-weight: 700; cursor: default;
+    }
+
+    /* ── FEATURES ── */
+    .section { position: relative; z-index: 1; max-width: 1100px; margin: 0 auto; padding: 0 24px 100px; }
+    .section-label {
+      text-align: center; font-size: 13px; font-weight: 700; text-transform: uppercase;
+      letter-spacing: .1em; color: var(--accent-lt); margin-bottom: 14px;
+    }
+    .section-title {
+      text-align: center; font-size: clamp(28px, 4vw, 44px); font-weight: 900;
+      letter-spacing: -.5px; margin-bottom: 14px;
+    }
+    .section-sub { text-align: center; font-size: 17px; color: var(--txt2); margin-bottom: 56px; max-width: 540px; margin-left: auto; margin-right: auto; }
+
+    .features-grid {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px;
+    }
+    .feat-card {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 18px; padding: 28px;
+      transition: border-color .25s, transform .25s;
+    }
+    .feat-card:hover { border-color: rgba(124,58,237,.4); transform: translateY(-3px); }
+    .feat-icon {
+      width: 48px; height: 48px; border-radius: 14px;
+      background: rgba(124,58,237,.15); border: 1px solid rgba(124,58,237,.25);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 22px; margin-bottom: 18px;
+    }
+    .feat-card h3 { font-size: 17px; font-weight: 700; margin-bottom: 8px; }
+    .feat-card p { font-size: 14px; color: var(--txt2); line-height: 1.65; }
+
+    /* ── HOW IT WORKS ── */
+    .steps-grid {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 16px; position: relative;
+    }
+    .step-card {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 18px; padding: 28px; text-align: center;
+    }
+    .step-num {
+      width: 44px; height: 44px; border-radius: 50%;
+      background: linear-gradient(135deg, var(--accent), #A855F7);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 18px; font-weight: 900; margin: 0 auto 18px;
+    }
+    .step-card h3 { font-size: 16px; font-weight: 700; margin-bottom: 8px; }
+    .step-card p { font-size: 14px; color: var(--txt2); line-height: 1.6; }
+
+    /* ── INSTALL STEPS ── */
+    .install-wrap {
+      background: linear-gradient(135deg, rgba(66,133,244,.08) 0%, rgba(52,168,83,.06) 100%);
+      border: 1px solid rgba(66,133,244,.2);
+      border-radius: 24px; padding: 48px; margin-bottom: 100px;
+      position: relative; z-index: 1; max-width: 1100px; margin: 0 auto 100px;
+    }
+    .install-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 24px; flex-wrap: wrap; margin-bottom: 40px; }
+    .install-top h2 { font-size: clamp(24px, 3vw, 36px); font-weight: 900; margin-bottom: 10px; }
+    .install-top p { font-size: 15px; color: var(--txt2); max-width: 420px; }
+
+    .install-steps { display: flex; gap: 16px; flex-wrap: wrap; }
+    .install-step {
+      flex: 1; min-width: 180px;
+      background: rgba(0,0,0,.25); border: 1px solid rgba(255,255,255,.06);
+      border-radius: 14px; padding: 20px;
+    }
+    .install-step-num {
+      width: 30px; height: 30px; border-radius: 50%;
+      background: linear-gradient(135deg, #4285F4, #34A853);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 13px; font-weight: 800; margin-bottom: 12px;
+    }
+    .install-step h4 { font-size: 14px; font-weight: 700; margin-bottom: 6px; }
+    .install-step p { font-size: 13px; color: var(--txt2); line-height: 1.55; }
+    .install-step code {
+      background: rgba(0,0,0,.4); padding: 1px 6px; border-radius: 4px;
+      font-family: monospace; font-size: 12px; color: #7eb4ff;
+    }
+
+    /* ── CTA BANNER ── */
+    .cta-banner {
+      position: relative; z-index: 1;
+      max-width: 1100px; margin: 0 auto 100px; padding: 0 24px;
+    }
+    .cta-inner {
+      background: linear-gradient(135deg, rgba(124,58,237,.2) 0%, rgba(168,85,247,.12) 100%);
+      border: 1px solid rgba(124,58,237,.3);
+      border-radius: 24px; padding: 60px 48px; text-align: center;
+    }
+    .cta-inner h2 { font-size: clamp(26px, 4vw, 42px); font-weight: 900; margin-bottom: 14px; }
+    .cta-inner p { font-size: 17px; color: var(--txt2); margin-bottom: 36px; }
+    .cta-btns { display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; }
+
+    /* ── FOOTER ── */
+    footer {
+      position: relative; z-index: 1;
+      border-top: 1px solid var(--border);
+      padding: 32px 24px; text-align: center;
+      color: var(--txt3); font-size: 13px;
+    }
+    footer a { color: var(--accent-lt); text-decoration: none; }
+    footer a:hover { text-decoration: underline; }
+
+    /* ── INSTALL MODAL ── */
+    #install-overlay {
+      display: none; position: fixed; inset: 0; z-index: 300;
+      background: rgba(0,0,0,.65); backdrop-filter: blur(8px);
+      align-items: center; justify-content: center;
+    }
+    #install-overlay.show { display: flex; }
+    #install-modal {
+      background: #131e35; border: 1px solid var(--border);
+      border-radius: 20px; padding: 36px 32px;
+      width: 100%; max-width: 500px; margin: 0 16px;
+      box-shadow: 0 32px 80px rgba(0,0,0,.6);
+    }
+    #install-modal h3 { font-size: 20px; font-weight: 800; margin-bottom: 8px; }
+    #install-modal > p { font-size: 14px; color: var(--txt2); margin-bottom: 24px; line-height: 1.6; }
+    .modal-dl-btn {
+      display: flex; align-items: center; justify-content: center; gap: 10px;
+      width: 100%; padding: 14px; border-radius: 12px;
+      background: linear-gradient(135deg, #4285F4, #34A853);
+      color: #fff; font-size: 16px; font-weight: 700;
+      text-decoration: none; margin-bottom: 24px;
+      box-shadow: 0 4px 20px rgba(66,133,244,.3);
+      transition: opacity .2s;
+    }
+    .modal-dl-btn:hover { opacity: .88; }
+    .modal-steps { list-style: none; display: flex; flex-direction: column; gap: 12px; margin-bottom: 24px; }
+    .modal-steps li { display: flex; align-items: flex-start; gap: 12px; font-size: 14px; color: var(--txt2); }
+    .modal-steps .sn {
+      flex-shrink: 0; width: 26px; height: 26px; border-radius: 50%;
+      background: var(--accent); color: #fff; font-size: 12px; font-weight: 800;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .modal-steps code {
+      background: rgba(0,0,0,.4); padding: 1px 6px; border-radius: 4px;
+      font-family: monospace; font-size: 12px; color: #7eb4ff;
+    }
+    .modal-close { width: 100%; padding: 10px; background: var(--card); border: 1px solid var(--border); border-radius: 10px; color: var(--txt2); font-size: 14px; cursor: pointer; }
+    .modal-close:hover { color: var(--txt); }
+
+    /* ── RESPONSIVE ── */
+    @media (max-width: 640px) {
+      .install-wrap { padding: 32px 20px; }
+      .cta-inner { padding: 40px 24px; }
+      .nav-logo-name { display: none; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <div class="nav-inner">
+    <a href="./landing.html" class="nav-logo">
+      <img src="scooby-icon.png" alt="Scooby" />
+      <span class="nav-logo-name">Scooby</span>
+    </a>
+    <div class="nav-right">
+      <!-- Google Sign-In button (shown when not signed in) -->
+      <div id="g-signin-btn"></div>
+      <!-- User chip (shown when signed in) -->
+      <div id="user-chip">
+        <img id="user-avatar" src="" alt="" />
+        <span id="user-name"></span>
+        <button id="user-signout" onclick="signOut()">Sign out</button>
+      </div>
+      <a href="./index.html" class="btn-nav-app">Open App →</a>
+    </div>
+  </div>
+</nav>
+
+<!-- HERO -->
+<section style="position:relative;z-index:1">
+  <div class="hero">
+    <div class="hero-badge">✨ Powered by Mistral AI</div>
+    <h1>Summarize Any Video<br><em>in Seconds with AI</em></h1>
+    <p>Paste a transcript, upload a file, or record live audio from any YouTube video, call, or meeting — and get a clear AI summary instantly.</p>
+    <div class="hero-ctas">
+      <button class="btn-chrome-cta" onclick="openInstallModal()">
+        <svg width="20" height="20" viewBox="0 0 256 256" fill="none"><circle cx="128" cy="128" r="128" fill="#fff"/><circle cx="128" cy="128" r="52" fill="#1A73E8"/><path d="M128 76h112a128 128 0 0 0-224 0h112z" fill="#EA4335"/><path d="M16 128A112 112 0 0 0 72 228l56-96.9A52 52 0 0 1 76 76H16A127.5 127.5 0 0 0 16 128z" fill="#34A853"/><path d="M240 128a127.5 127.5 0 0 0-16-62H128a52 52 0 0 1 52 45.1L236 228A112 112 0 0 0 240 128z" fill="#FBBC04"/></svg>
+        Add to Chrome — Free
+      </button>
+      <a href="./index.html" class="btn-try-app">Try Web App →</a>
+    </div>
+    <p class="hero-note">Also available as a <a href="./index.html">PWA</a> on Android &amp; iPhone · No account required</p>
+  </div>
+</section>
+
+<!-- APP PREVIEW (mockup) -->
+<div class="preview-wrap" style="position:relative;z-index:1">
+  <div class="preview-frame">
+    <div class="preview-bar">
+      <div class="preview-dot"></div>
+      <div class="preview-dot"></div>
+      <div class="preview-dot"></div>
+      <div class="preview-url">scooby-ai-summarizer</div>
+    </div>
+    <div class="preview-body">
+      <div class="preview-tabs">
+        <div class="preview-tab active">📝 Paste Transcript</div>
+        <div class="preview-tab">📂 Upload File</div>
+        <div class="preview-tab">🎤 Live Mic</div>
+      </div>
+      <div class="preview-textarea">Transcript text appears here… paste any transcript, or switch to Live Mic to record audio from a YouTube video, meeting, or call in real-time.</div>
+      <div class="preview-summarize">
+        <span class="preview-wc">Word count: 284</span>
+        <div class="preview-btn">✨ Summarize</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- FEATURES -->
+<div class="section">
+  <p class="section-label">Everything you need</p>
+  <h2 class="section-title">Built for real-world audio & video</h2>
+  <p class="section-sub">No complicated setup. Just open, speak or paste, and summarize.</p>
+
+  <div class="features-grid">
+    <div class="feat-card">
+      <div class="feat-icon">🎤</div>
+      <h3>Live Mic Transcription</h3>
+      <p>Play any YouTube video, podcast, or join a call — then click the mic icon and watch the transcript appear in real-time. Works on Chrome, Edge &amp; Safari.</p>
+    </div>
+    <div class="feat-card">
+      <div class="feat-icon">🤖</div>
+      <h3>Instant AI Summaries</h3>
+      <p>Choose Quick Overview, Detailed Notes, or Key Bullets. Scooby uses Mistral AI to deliver accurate, well-structured summaries in seconds.</p>
+    </div>
+    <div class="feat-card">
+      <div class="feat-icon">📂</div>
+      <h3>Paste or Upload</h3>
+      <p>Already have a transcript? Paste it directly or upload an SRT, VTT, or text file. Scooby handles the rest.</p>
+    </div>
+    <div class="feat-card">
+      <div class="feat-icon">🌐</div>
+      <h3>English &amp; Hindi</h3>
+      <p>Get summaries in English or Hindi with one click. Ideal for multilingual teams and content creators.</p>
+    </div>
+    <div class="feat-card">
+      <div class="feat-icon">📱</div>
+      <h3>Works on Any Device</h3>
+      <p>Install on Android or iPhone as a web app (PWA). Add to Chrome for toolbar access. 100% free, no app store needed.</p>
+    </div>
+    <div class="feat-card">
+      <div class="feat-icon">🔒</div>
+      <h3>Private &amp; Secure</h3>
+      <p>Your API key and history are stored only in your browser. Nothing is sent to external servers except the transcript you choose to summarize.</p>
+    </div>
+  </div>
+</div>
+
+<!-- HOW IT WORKS -->
+<div class="section">
+  <p class="section-label">How it works</p>
+  <h2 class="section-title">Three steps to any summary</h2>
+  <p class="section-sub">No sign-up, no waiting. Open and go.</p>
+  <div class="steps-grid">
+    <div class="step-card">
+      <div class="step-num">1</div>
+      <h3>Open Scooby</h3>
+      <p>Launch the Chrome extension or open the web app on any device — phone, tablet, or laptop.</p>
+    </div>
+    <div class="step-card">
+      <div class="step-num">2</div>
+      <h3>Add your content</h3>
+      <p>Paste a transcript, upload a file, or hit the mic button to record live audio from any video or call.</p>
+    </div>
+    <div class="step-card">
+      <div class="step-num">3</div>
+      <h3>Get your summary</h3>
+      <p>Click Summarize. Scooby returns a clean AI-generated summary in seconds, ready to copy or save.</p>
+    </div>
+  </div>
+</div>
+
+<!-- INSTALL STEPS -->
+<div style="position:relative;z-index:1;padding:0 24px">
+  <div class="install-wrap">
+    <div class="install-top">
+      <div>
+        <h2>🧩 Add Scooby to Chrome</h2>
+        <p>Install in under a minute. Download the extension, load it into Chrome, and you're ready.</p>
+      </div>
+      <button class="btn-chrome-cta" onclick="openInstallModal()" style="flex-shrink:0">
+        ⬇️ Download &amp; Install
+      </button>
+    </div>
+    <div class="install-steps">
+      <div class="install-step">
+        <div class="install-step-num">1</div>
+        <h4>Download the zip</h4>
+        <p>Click the button above to download <code>scooby-chrome-extension.zip</code> and unzip it.</p>
+      </div>
+      <div class="install-step">
+        <div class="install-step-num">2</div>
+        <h4>Open Extensions</h4>
+        <p>In Chrome, go to <code>chrome://extensions</code> and turn on <strong>Developer mode</strong>.</p>
+      </div>
+      <div class="install-step">
+        <div class="install-step-num">3</div>
+        <h4>Load unpacked</h4>
+        <p>Click <strong>Load unpacked</strong> and select the unzipped <code>chrome-extension</code> folder.</p>
+      </div>
+      <div class="install-step">
+        <div class="install-step-num">4</div>
+        <h4>Pin &amp; use</h4>
+        <p>Click the 🧩 puzzle icon in Chrome's toolbar, pin Scooby, and click it any time to summarize.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- CTA BANNER -->
+<div class="cta-banner">
+  <div class="cta-inner">
+    <h2>Start summarizing in seconds</h2>
+    <p>No account, no sign-up. Works right in your browser.</p>
+    <div class="cta-btns">
+      <button class="btn-chrome-cta" onclick="openInstallModal()">
+        🧩 Add to Chrome — Free
+      </button>
+      <a href="./index.html" class="btn-try-app">Open Web App →</a>
+    </div>
+  </div>
+</div>
+
+<!-- FOOTER -->
+<footer>
+  <p>Made with ❤️ · <a href="./index.html">Open App</a> · <a href="https://console.mistral.ai" target="_blank" rel="noopener">Get Mistral API Key</a></p>
+</footer>
+
+<!-- INSTALL MODAL -->
+<div id="install-overlay" onclick="if(event.target===this)closeInstallModal()">
+  <div id="install-modal">
+    <h3>🧩 Install Scooby on Chrome</h3>
+    <p>Download the extension package, then follow these steps to add it to Chrome.</p>
+    <a class="modal-dl-btn" href="./scooby-chrome-extension.zip" download>⬇️ Download Extension (.zip)</a>
+    <ol class="modal-steps">
+      <li><span class="sn">1</span><span>Unzip the downloaded file — you'll get a <code>chrome-extension</code> folder</span></li>
+      <li><span class="sn">2</span><span>Open Chrome and go to <code>chrome://extensions</code></span></li>
+      <li><span class="sn">3</span><span>Enable <strong>Developer mode</strong> (toggle in top-right)</span></li>
+      <li><span class="sn">4</span><span>Click <strong>Load unpacked</strong> → select the <code>chrome-extension</code> folder</span></li>
+    </ol>
+    <p style="font-size:12px;color:var(--txt3);margin-bottom:20px">After loading, click the 🧩 puzzle icon in Chrome's toolbar and pin Scooby for quick access.</p>
+    <button class="modal-close" onclick="closeInstallModal()">✕ Close</button>
+  </div>
+</div>
+
+<script>
+const GOOGLE_CLIENT_ID = 'YOUR_GOOGLE_CLIENT_ID'; // ← Replace with your OAuth Client ID
+
+/* ── Google Identity Services ── */
+window.onload = () => {
+  if (GOOGLE_CLIENT_ID === 'YOUR_GOOGLE_CLIENT_ID') return; // not configured yet
+  google.accounts.id.initialize({
+    client_id: GOOGLE_CLIENT_ID,
+    callback: handleGoogleCredential,
+    auto_select: true,
+  });
+  google.accounts.id.renderButton(document.getElementById('g-signin-btn'), {
+    theme: 'outline', size: 'medium', shape: 'pill', text: 'signin_with',
+  });
+
+  // Restore session from localStorage
+  const saved = localStorage.getItem('scooby_google_user');
+  if (saved) showUserChip(JSON.parse(saved));
+  else google.accounts.id.prompt();
+};
+
+function handleGoogleCredential(response) {
+  const payload = JSON.parse(atob(response.credential.split('.')[1]));
+  const user = { name: payload.name, email: payload.email, picture: payload.picture, token: response.credential };
+  localStorage.setItem('scooby_google_user', JSON.stringify(user));
+  showUserChip(user);
+}
+
+function showUserChip(user) {
+  document.getElementById('g-signin-btn').style.display = 'none';
+  const chip = document.getElementById('user-chip');
+  document.getElementById('user-avatar').src = user.picture || '';
+  document.getElementById('user-name').textContent = user.name || user.email;
+  chip.style.display = 'flex';
+}
+
+function signOut() {
+  localStorage.removeItem('scooby_google_user');
+  document.getElementById('user-chip').style.display = 'none';
+  document.getElementById('g-signin-btn').style.display = 'block';
+  if (typeof google !== 'undefined') google.accounts.id.disableAutoSelect();
+}
+
+/* ── Install Modal ── */
+function openInstallModal()  { document.getElementById('install-overlay').classList.add('show'); }
+function closeInstallModal() { document.getElementById('install-overlay').classList.remove('show'); }
+</script>
+</body>
+</html>
