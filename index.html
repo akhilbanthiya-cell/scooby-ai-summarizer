@@ -512,6 +512,112 @@
     }
     .provider-key-notice a { color: var(--accent-lt); text-decoration: underline; cursor: pointer; }
 
+    /* ── Settings Panel ─────────────────────────────────────────── */
+    #settings-overlay {
+      display: none; position: fixed; inset: 0; z-index: 199;
+      background: rgba(0,0,0,.5); backdrop-filter: blur(4px);
+    }
+    #settings-overlay.show { display: block; }
+    #settings-panel {
+      position: fixed; top: 0; right: -540px; bottom: 0;
+      width: 100%; max-width: 520px;
+      background: #111827; border-left: 1px solid var(--border);
+      z-index: 200; overflow-y: auto;
+      transition: right .3s cubic-bezier(.22,1,.36,1);
+      display: flex; flex-direction: column;
+    }
+    #settings-panel.show { right: 0; }
+    .settings-hdr {
+      position: sticky; top: 0; z-index: 10;
+      background: #111827; border-bottom: 1px solid var(--border);
+      padding: 18px 20px; display: flex; align-items: center; justify-content: space-between;
+    }
+    .settings-hdr h2 { font-size: 16px; font-weight: 700; }
+    .settings-hdr-close {
+      background: none; border: none; color: var(--txt3); font-size: 20px;
+      cursor: pointer; line-height: 1; padding: 4px 6px; border-radius: 6px;
+    }
+    .settings-hdr-close:hover { color: var(--txt); background: var(--card); }
+    .settings-section-label {
+      font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .09em;
+      color: var(--txt3); padding: 20px 20px 10px;
+    }
+    .prov-card {
+      margin: 0 14px 10px;
+      background: var(--card); border: 1.5px solid var(--border);
+      border-radius: 14px; overflow: hidden; cursor: pointer;
+      transition: border-color .2s;
+    }
+    .prov-card:hover { border-color: rgba(124,58,237,.4); }
+    .prov-card.active-prov { border-color: var(--accent); }
+    .prov-card-top {
+      display: flex; align-items: center; gap: 12px; padding: 15px 16px;
+    }
+    .prov-radio {
+      width: 18px; height: 18px; border-radius: 50%; flex-shrink: 0;
+      border: 2px solid var(--txt3);
+      display: flex; align-items: center; justify-content: center; transition: border-color .2s;
+    }
+    .prov-card.active-prov .prov-radio { border-color: var(--accent); }
+    .prov-card.active-prov .prov-radio::after {
+      content: ''; width: 9px; height: 9px; border-radius: 50%; background: var(--accent); display: block;
+    }
+    .prov-icon { font-size: 22px; flex-shrink: 0; width: 36px; text-align: center; }
+    .prov-meta { flex: 1; min-width: 0; }
+    .prov-name-row { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+    .prov-name { font-size: 14px; font-weight: 700; }
+    .prov-tag {
+      font-size: 9px; font-weight: 800; padding: 2px 6px; border-radius: 5px;
+      text-transform: uppercase; letter-spacing: .05em;
+    }
+    .prov-tag.free { background: rgba(16,185,129,.2); color: #34D399; }
+    .prov-tag.paid { background: rgba(245,158,11,.15); color: #FBBF24; }
+    .prov-model { font-size: 11px; color: var(--txt3); margin-top: 2px; }
+    .prov-active-chip {
+      font-size: 11px; font-weight: 600; color: var(--green); flex-shrink: 0;
+      background: rgba(16,185,129,.12); padding: 3px 9px; border-radius: 20px;
+    }
+    .prov-key-body {
+      border-top: 1px solid var(--border); padding: 14px 16px; display: none;
+    }
+    .prov-key-body.show { display: block; }
+    .prov-desc {
+      font-size: 12px; color: var(--txt2); margin-bottom: 12px; line-height: 1.55;
+    }
+    .prov-get-link {
+      display: inline-flex; align-items: center; gap: 5px;
+      font-size: 12px; font-weight: 600; color: var(--accent-lt);
+      text-decoration: none; margin-bottom: 12px;
+      border: 1px solid rgba(124,58,237,.3); padding: 5px 10px; border-radius: 7px;
+      background: rgba(124,58,237,.08); transition: background .2s;
+    }
+    .prov-get-link:hover { background: rgba(124,58,237,.18); }
+    .prov-key-row { display: flex; gap: 8px; }
+    .prov-key-row input {
+      flex: 1; background: rgba(0,0,0,.4); border: 1px solid var(--border);
+      border-radius: 8px; color: var(--txt); padding: 9px 12px;
+      font-size: 12px; font-family: monospace; outline: none;
+    }
+    .prov-key-row input:focus { border-color: var(--accent); }
+    .prov-save-btn {
+      background: var(--accent); color: #fff; border: none;
+      border-radius: 8px; padding: 9px 14px; font-size: 13px; font-weight: 600;
+      cursor: pointer; white-space: nowrap; transition: opacity .2s;
+    }
+    .prov-save-btn:hover { opacity: .85; }
+    .prov-key-saved { font-size: 11px; color: var(--green); margin-top: 7px; display: none; }
+    .prov-use-btn {
+      width: 100%; margin-top: 10px; padding: 9px;
+      background: transparent; border: 1.5px solid var(--accent); color: var(--accent-lt);
+      border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; transition: all .2s;
+    }
+    .prov-use-btn:hover { background: var(--accent); color: #fff; }
+    .prov-use-btn.is-active {
+      background: rgba(16,185,129,.08); border-color: var(--green); color: var(--green); cursor: default;
+    }
+    .settings-footer { padding: 20px; margin-top: auto; }
+    .settings-footer p { font-size: 12px; color: var(--txt3); line-height: 1.6; }
+
     /* ── Bottom Row ─────────────────────────────────────────────── */
     .btm-row {
       display: flex; align-items: center;
@@ -762,7 +868,7 @@
         <button onclick="gSignOut()" style="background:none;border:none;color:var(--txt3);font-size:11px;cursor:pointer;padding:2px 4px;" title="Sign out">✕</button>
       </div>
       <button class="btn-ghost" onclick="openChromeModal()" style="border-color:rgba(66,133,244,.45);color:#7eb4ff;">🧩 Add to Chrome</button>
-      <button class="btn-ghost" id="api-key-btn" onclick="openApiKeyModal()">⚙ API Key</button>
+      <button class="btn-ghost" id="api-key-btn" onclick="openSettings()">⚙ Settings</button>
       <button class="btn-ghost" onclick="openHistory()">🕒 History</button>
     </div>
   </div>
@@ -975,22 +1081,17 @@
   </div>
 </div>
 
-<!-- API Key Modal -->
-<div id="key-overlay" onclick="if(event.target===this)closeApiKeyModal()">
-  <div id="key-modal">
-    <h3>🔑 Mistral API Key</h3>
-    <p>Stored only in your browser. Get a free key at <a href="https://console.mistral.ai" target="_blank" rel="noopener">console.mistral.ai</a>.</p>
-    <div id="key-status" class="key-status"></div>
-    <input type="password" id="key-input" placeholder="Paste your Mistral key here…" autocomplete="off" spellcheck="false" />
-    <div class="key-show-row">
-      <input type="checkbox" id="key-show" onchange="document.getElementById('key-input').type=this.checked?'text':'password'" />
-      <label for="key-show">Show key</label>
-    </div>
-    <div class="key-modal-btns">
-      <button class="btn btn-primary" onclick="saveApiKey()">💾 Save</button>
-      <button class="btn btn-secondary" onclick="closeApiKeyModal()">Cancel</button>
-      <button class="btn btn-secondary" onclick="clearApiKey()" style="margin-left:auto;color:var(--red);border-color:rgba(239,68,68,.35)">🗑 Clear</button>
-    </div>
+<!-- Settings Panel -->
+<div id="settings-overlay" onclick="closeSettings()"></div>
+<div id="settings-panel">
+  <div class="settings-hdr">
+    <h2>⚙ Settings</h2>
+    <button class="settings-hdr-close" onclick="closeSettings()">✕</button>
+  </div>
+  <div class="settings-section-label">AI Provider</div>
+  <div id="prov-cards-list"></div>
+  <div class="settings-footer">
+    <p>Keys are stored only in your browser (localStorage). Nothing is sent to external servers except the transcript you choose to summarize.</p>
   </div>
 </div>
 
@@ -1016,12 +1117,79 @@
 /* ══════════════════════════════════════════════════════
    CONFIG
 ══════════════════════════════════════════════════════ */
-const API_KEY = ''; /* fallback — keys stored per-provider in localStorage */
-
-const PROVIDER = {
-  endpoint:   'https://api.mistral.ai/v1/chat/completions',
-  model:      'open-mistral-7b',
-  defaultKey: 'GVJKDnOH9iaYlCToYhvwebwQ3lDBGjqN',
+const PROVIDERS = {
+  mistral: {
+    name: 'Mistral AI', icon: '🌐',
+    model: 'open-mistral-7b',
+    endpoint: 'https://api.mistral.ai/v1/chat/completions',
+    format: 'openai',
+    defaultKey: 'GVJKDnOH9iaYlCToYhvwebwQ3lDBGjqN',
+    apiUrl: 'https://console.mistral.ai',
+    placeholder: 'Paste your Mistral API key…',
+    free: true,
+    desc: 'Fast & free. Best for everyday summaries.',
+    storageKey: 'scooby_api_key_mistral',
+  },
+  openai: {
+    name: 'OpenAI', icon: '🤖',
+    model: 'gpt-4o-mini',
+    endpoint: 'https://api.openai.com/v1/chat/completions',
+    format: 'openai',
+    defaultKey: '',
+    apiUrl: 'https://platform.openai.com/api-keys',
+    placeholder: 'sk-…',
+    free: false,
+    desc: 'GPT-4o mini — smart & affordable. Requires a paid account.',
+    storageKey: 'scooby_api_key_openai',
+  },
+  groq: {
+    name: 'Groq (Llama 3)', icon: '⚡',
+    model: 'llama3-8b-8192',
+    endpoint: 'https://api.groq.com/openai/v1/chat/completions',
+    format: 'openai',
+    defaultKey: '',
+    apiUrl: 'https://console.groq.com/keys',
+    placeholder: 'gsk_…',
+    free: true,
+    desc: 'Llama 3 on Groq cloud. Extremely fast with a generous free tier.',
+    storageKey: 'scooby_api_key_groq',
+  },
+  gemini: {
+    name: 'Google Gemini', icon: '💎',
+    model: 'gemini-1.5-flash',
+    endpoint: 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent',
+    format: 'gemini',
+    defaultKey: '',
+    apiUrl: 'https://aistudio.google.com/app/apikey',
+    placeholder: 'AIza…',
+    free: true,
+    desc: 'Gemini 1.5 Flash. Free via Google AI Studio — no credit card needed.',
+    storageKey: 'scooby_api_key_gemini',
+  },
+  anthropic: {
+    name: 'Anthropic Claude', icon: '🧠',
+    model: 'claude-haiku-4-5-20251001',
+    endpoint: 'https://api.anthropic.com/v1/messages',
+    format: 'anthropic',
+    defaultKey: '',
+    apiUrl: 'https://console.anthropic.com/settings/keys',
+    placeholder: 'sk-ant-…',
+    free: false,
+    desc: 'Claude Haiku — fast & capable. Requires a paid Anthropic account.',
+    storageKey: 'scooby_api_key_anthropic',
+  },
+  cohere: {
+    name: 'Cohere', icon: '🔗',
+    model: 'command-r-plus-08-2024',
+    endpoint: 'https://api.cohere.ai/v2/chat',
+    format: 'cohere',
+    defaultKey: '',
+    apiUrl: 'https://dashboard.cohere.com/api-keys',
+    placeholder: 'Paste your Cohere API key…',
+    free: true,
+    desc: 'Command R+. Free trial credits available. Great for long documents.',
+    storageKey: 'scooby_api_key_cohere',
+  },
 };
 
 /* ── CORS proxies ────────────────────────────────────────────────── */
@@ -1054,6 +1222,7 @@ const PIPED = [
 /* ── State ───────────────────────────────────────────────────────── */
 const S = {
   tab: 'tx', mode: 'detailed', lang: 'en',
+  provider: localStorage.getItem('scooby_active_provider') || 'mistral',
   title: '', thumb: '',
   summary: null, history: [], busy: false, isListening: false,
 };
@@ -1832,15 +2001,92 @@ function startLoadLoop() {
 }
 function stopLoadLoop() { clearInterval(_lt); }
 
-/* ── Mistral API ─────────────────────────────────────────────────── */
+/* ── API helpers ─────────────────────────────────────────────────── */
+function parseAPIText(raw) {
+  raw = raw.trim().replace(/^```(?:json)?\s*/i,'').replace(/\s*```$/,'').trim();
+  const m = raw.match(/\{[\s\S]*\}/);
+  if (m) raw = m[0];
+  return JSON.parse(raw);
+}
+
 async function callAPI(transcript, mode) {
+  const prov = PROVIDERS[S.provider] || PROVIDERS.mistral;
+  const key  = getApiKey();
+  const userMsg = `Video title (if known): ${S.title || 'Unknown'}\n\nTranscript:\n${transcript}`;
+
+  /* ── Gemini format ── */
+  if (prov.format === 'gemini') {
+    const url  = `${prov.endpoint}?key=${encodeURIComponent(key)}`;
+    const body = JSON.stringify({
+      contents: [{ role: 'user', parts: [{ text: sysPrompt(mode) + '\n\n' + userMsg }] }],
+      generationConfig: { maxOutputTokens: 4096 },
+    });
+    const resp = await fetch(url, { method: 'POST', headers: { 'content-type': 'application/json' }, body });
+    if (!resp.ok) {
+      const e = await resp.json().catch(() => ({}));
+      if (resp.status === 401 || resp.status === 400) throw new Error('Invalid Gemini API key — open ⚙ Settings to update it.');
+      throw new Error(e.error?.message || `HTTP ${resp.status}`);
+    }
+    const result = await resp.json();
+    return parseAPIText(result.candidates[0].content.parts[0].text);
+  }
+
+  /* ── Anthropic format ── */
+  if (prov.format === 'anthropic') {
+    const body = JSON.stringify({
+      model: prov.model, max_tokens: 4096,
+      system: sysPrompt(mode),
+      messages: [{ role: 'user', content: userMsg }],
+    });
+    const resp = await fetch(prov.endpoint, {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        'x-api-key': key,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-allow-browser': 'true',
+      },
+      body,
+    });
+    if (!resp.ok) {
+      const e = await resp.json().catch(() => ({}));
+      if (resp.status === 401) throw new Error('Invalid Anthropic API key — open ⚙ Settings to update it.');
+      throw new Error(e.error?.message || `HTTP ${resp.status}`);
+    }
+    const result = await resp.json();
+    return parseAPIText(result.content[0].text);
+  }
+
+  /* ── Cohere format ── */
+  if (prov.format === 'cohere') {
+    const body = JSON.stringify({
+      model: prov.model,
+      messages: [
+        { role: 'system', content: sysPrompt(mode) },
+        { role: 'user',   content: userMsg },
+      ],
+    });
+    const resp = await fetch(prov.endpoint, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', 'Authorization': `Bearer ${key}` },
+      body,
+    });
+    if (!resp.ok) {
+      const e = await resp.json().catch(() => ({}));
+      if (resp.status === 401) throw new Error('Invalid Cohere API key — open ⚙ Settings to update it.');
+      throw new Error(e.message || `HTTP ${resp.status}`);
+    }
+    const result = await resp.json();
+    return parseAPIText(result.message?.content[0]?.text || result.text || '');
+  }
+
+  /* ── OpenAI-compatible (Mistral, OpenAI, Groq) ── */
   const body = JSON.stringify({
-    model: PROVIDER.model,
-    max_tokens: 4096,
+    model: prov.model, max_tokens: 4096,
     messages: [
       { role: 'system', content: sysPrompt(mode) },
-      { role: 'user',   content: `Video title (if known): ${S.title || 'Unknown'}\n\nTranscript:\n${transcript}` }
-    ]
+      { role: 'user',   content: userMsg },
+    ],
   });
 
   const MAX_TRIES = 4;
@@ -1851,64 +2097,45 @@ async function callAPI(transcript, mode) {
     try {
       const ctrl    = new AbortController();
       const timeout = setTimeout(() => ctrl.abort(), 30000);
-      resp = await fetch(PROVIDER.endpoint, {
+      resp = await fetch(prov.endpoint, {
         method: 'POST',
-        headers: {
-          'content-type': 'application/json',
-          'Authorization': `Bearer ${getApiKey()}`,
-        },
-        body,
-        signal: ctrl.signal,
+        headers: { 'content-type': 'application/json', 'Authorization': `Bearer ${key}` },
+        body, signal: ctrl.signal,
       });
       clearTimeout(timeout);
     } catch (e) {
       if (e.name === 'AbortError') throw new Error('Request timed out — check your internet and try again.');
       if (attempt === MAX_TRIES) throw new Error('Network error — check your internet connection.');
-      await new Promise(r => setTimeout(r, delay));
-      delay *= 2;
-      continue;
+      await new Promise(r => setTimeout(r, delay)); delay *= 2; continue;
     }
 
     if (resp.status === 429) {
       const e = await resp.json().catch(() => ({}));
       const code = e.error?.code || e.error?.type || '';
-      if (code === 'insufficient_quota' || code === 'billing_hard_limit_reached') {
-        throw new Error('Your OpenAI account has no remaining credits. Add billing at platform.openai.com → Billing.');
-      }
+      if (code === 'insufficient_quota' || code === 'billing_hard_limit_reached')
+        throw new Error('This account has no remaining credits. Add billing or switch provider in ⚙ Settings.');
       if (attempt === MAX_TRIES) throw new Error('Rate limited — please wait 1–2 minutes then try again.');
       const retryAfterSec = parseInt(resp.headers.get('retry-after') || '60', 10);
-      const waitMs = retryAfterSec * 1000;
-      /* Live countdown in the loading message */
       let remaining = retryAfterSec;
-      const countdownEl = document.getElementById('load-msg');
+      const el = document.getElementById('load-msg');
       const tick = setInterval(() => {
         remaining--;
-        if (countdownEl) countdownEl.innerHTML =
-          `Rate limited — retrying in <strong>${remaining}s</strong> (attempt ${attempt}/${MAX_TRIES})<span class="dots"><span>.</span><span>.</span><span>.</span></span>`;
+        if (el) el.innerHTML = `Rate limited — retrying in <strong>${remaining}s</strong> (attempt ${attempt}/${MAX_TRIES})<span class="dots"><span>.</span><span>.</span><span>.</span></span>`;
       }, 1000);
-      await new Promise(r => setTimeout(r, waitMs));
-      clearInterval(tick);
-      continue;
+      await new Promise(r => setTimeout(r, retryAfterSec * 1000));
+      clearInterval(tick); continue;
     }
 
     if (!resp.ok) {
       const raw = await resp.text().catch(() => '');
-      console.error('[Scooby] API error raw response:', raw);
       let msg = `HTTP ${resp.status}`;
-      try {
-        const e = JSON.parse(raw);
-        msg = e.error?.message || e.error?.type || e.message || e.detail || JSON.stringify(e) || msg;
-      } catch { msg = raw || msg; }
-      if (resp.status === 401) throw new Error('Invalid API key — click ⚙ API Key to update it.');
+      try { const e = JSON.parse(raw); msg = e.error?.message || e.error?.type || e.message || e.detail || msg; } catch { msg = raw || msg; }
+      if (resp.status === 401) throw new Error('Invalid API key — open ⚙ Settings to update it.');
       throw new Error(msg);
     }
 
     const result = await resp.json();
-    let raw = result.choices[0].message.content.trim()
-      .replace(/^```(?:json)?\s*/i,'').replace(/\s*```$/,'').trim();
-    const m = raw.match(/\{[\s\S]*\}/);
-    if (m) raw = m[0];
-    return JSON.parse(raw);
+    return parseAPIText(result.choices[0].message.content);
   }
 }
 
@@ -2193,56 +2420,104 @@ function esc(s) {
 }
 
 /* ══════════════════════════════════════════════════════
-   API KEY MANAGEMENT
+   SETTINGS & API KEY MANAGEMENT
 ══════════════════════════════════════════════════════ */
 function getApiKey() {
-  return localStorage.getItem('scooby_api_key_mistral') || PROVIDER.defaultKey || '';
+  const prov = PROVIDERS[S.provider] || PROVIDERS.mistral;
+  return localStorage.getItem(prov.storageKey) || prov.defaultKey || '';
 }
 
 function openChromeModal()  { document.getElementById('chrome-overlay').classList.add('show'); }
 function closeChromeModal() { document.getElementById('chrome-overlay').classList.remove('show'); }
 
-function openApiKeyModal() {
-  document.getElementById('key-input').value      = localStorage.getItem('scooby_api_key_mistral') || '';
-  document.getElementById('key-input').type       = 'password';
-  document.getElementById('key-show').checked     = false;
-  document.getElementById('key-status').className = 'key-status';
-  document.getElementById('key-status').textContent = '';
-  document.getElementById('key-overlay').classList.add('show');
-  setTimeout(() => document.getElementById('key-input').focus(), 80);
+/* ── Settings panel ── */
+function openSettings() {
+  renderProviderCards();
+  document.getElementById('settings-overlay').classList.add('show');
+  document.getElementById('settings-panel').classList.add('show');
+}
+function closeSettings() {
+  document.getElementById('settings-overlay').classList.remove('show');
+  document.getElementById('settings-panel').classList.remove('show');
 }
 
-function closeApiKeyModal() {
-  document.getElementById('key-overlay').classList.remove('show');
+function renderProviderCards() {
+  const container = document.getElementById('prov-cards-list');
+  container.innerHTML = Object.entries(PROVIDERS).map(([id, p]) => {
+    const isActive = S.provider === id;
+    const savedKey = localStorage.getItem(p.storageKey) || '';
+    const hasKey   = !!(savedKey || p.defaultKey);
+    return `
+    <div class="prov-card ${isActive ? 'active-prov' : ''}" id="prov-card-${id}">
+      <div class="prov-card-top" onclick="toggleProvCard('${id}')">
+        <div class="prov-radio ${isActive ? 'checked' : ''}"></div>
+        <div class="prov-icon">${p.icon}</div>
+        <div class="prov-meta">
+          <div class="prov-name-row">
+            <span class="prov-name">${p.name}</span>
+            <span class="prov-tag ${p.free ? 'free' : 'paid'}">${p.free ? 'FREE' : 'PAID'}</span>
+          </div>
+          <div class="prov-model">Model: ${p.model}</div>
+        </div>
+        ${isActive ? '<span class="prov-active-chip">✓ Active</span>' : ''}
+      </div>
+      <div class="prov-key-body ${isActive ? 'show' : ''}" id="prov-body-${id}">
+        <div class="prov-desc">${p.desc}</div>
+        <a class="prov-get-link" href="${p.apiUrl}" target="_blank" rel="noopener">
+          🔑 Get API Key →
+        </a>
+        <div class="prov-key-row">
+          <input type="password" id="prov-input-${id}"
+            placeholder="${p.placeholder}"
+            value="${savedKey}"
+            autocomplete="off" spellcheck="false"
+            onkeydown="if(event.key==='Enter')saveProvKey('${id}')"
+          />
+          <button class="prov-save-btn" onclick="saveProvKey('${id}')">Save</button>
+        </div>
+        <div class="prov-key-saved" id="prov-saved-${id}">${hasKey ? '✅ Key saved' : ''}</div>
+        <button class="prov-use-btn ${isActive ? 'is-active' : ''}" onclick="activateProvider('${id}')">
+          ${isActive ? '✓ Currently Active' : `Use ${p.name}`}
+        </button>
+      </div>
+    </div>`;
+  }).join('');
 }
 
-function saveApiKey() {
-  const val = document.getElementById('key-input').value.trim();
-  const st  = document.getElementById('key-status');
-  if (!val) { st.className = 'key-status err'; st.textContent = 'Please enter your API key.'; return; }
-  localStorage.setItem('scooby_api_key_mistral', val);
+function toggleProvCard(id) {
+  const body = document.getElementById(`prov-body-${id}`);
+  body.classList.toggle('show');
+}
+
+function saveProvKey(id) {
+  const prov = PROVIDERS[id];
+  const val  = document.getElementById(`prov-input-${id}`).value.trim();
+  if (!val) { toast('Please paste an API key.', 'warn'); return; }
+  localStorage.setItem(prov.storageKey, val);
+  const savedEl = document.getElementById(`prov-saved-${id}`);
+  if (savedEl) { savedEl.textContent = '✅ Key saved'; savedEl.style.display = 'block'; }
+  toast(`✅ ${prov.name} key saved!`, 'ok');
+}
+
+function activateProvider(id) {
+  S.provider = id;
+  localStorage.setItem('scooby_active_provider', id);
   updateKeyBadge();
-  closeApiKeyModal();
-  toast('✅ Mistral key saved — ready to summarize!', 'ok');
-}
-
-function clearApiKey() {
-  localStorage.removeItem('scooby_api_key_mistral');
-  document.getElementById('key-input').value = '';
-  document.getElementById('key-status').className = 'key-status';
-  updateKeyBadge();
-  toast('API key cleared.', 'warn');
+  renderProviderCards();
+  toast(`${PROVIDERS[id].icon} ${PROVIDERS[id].name} is now active`, 'ok');
 }
 
 function updateKeyBadge() {
-  const hasKey = !!(localStorage.getItem('scooby_api_key_mistral') || PROVIDER.defaultKey);
+  const prov   = PROVIDERS[S.provider] || PROVIDERS.mistral;
+  const hasKey = !!(localStorage.getItem(prov.storageKey) || prov.defaultKey);
   const btn    = document.getElementById('api-key-btn');
+  if (!btn) return;
   btn.classList.toggle('has-key', hasKey);
-  btn.textContent = hasKey ? '✅ Mistral' : '⚙ API Key';
+  btn.textContent = `⚙ ${prov.name}`;
 }
 
-/* Always keep the Mistral key fresh in localStorage */
-localStorage.setItem('scooby_api_key_mistral', PROVIDER.defaultKey);
+/* Always keep the Mistral default key fresh */
+localStorage.setItem('scooby_api_key_mistral', PROVIDERS.mistral.defaultKey);
 renderHistory();
 updateKeyBadge();
 
