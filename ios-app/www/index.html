@@ -1,0 +1,2673 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>Scooby — AI Video Summarizer</title>
+
+  <!-- Google Identity Services -->
+  <script src="https://accounts.google.com/gsi/client" async></script>
+
+  <!-- PWA -->
+  <link rel="manifest" href="manifest.json" />
+  <meta name="theme-color" content="#7C3AED" />
+  <meta name="mobile-web-app-capable" content="yes" />
+
+  <!-- iOS -->
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Scooby" />
+  <link rel="apple-touch-icon" href="apple-touch-icon.png" />
+  <link rel="icon" type="image/png" href="scooby-icon-full.png" />
+
+  <!-- General -->
+  <meta name="description" content="AI-powered transcript & audio summarizer" />
+  <meta name="application-name" content="Scooby" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:         #0F172A;
+      --bg2:        #1E293B;
+      --accent:     #7C3AED;
+      --accent-lt:  #9F67FF;
+      --accent-dim: rgba(124,58,237,.15);
+      --card:       rgba(255,255,255,.04);
+      --border:     rgba(255,255,255,.08);
+      --txt:        #E2E8F0;
+      --txt2:       #94A3B8;
+      --txt3:       #64748B;
+      --green:      #10B981;
+      --amber:      #F59E0B;
+      --red:        #EF4444;
+      --r:          16px;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--txt);
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      min-height: 100vh;
+      line-height: 1.6;
+      overflow-x: hidden;
+    }
+
+    body::before {
+      content: '';
+      position: fixed; inset: 0;
+      background:
+        radial-gradient(ellipse 70% 60% at 15% 10%, rgba(124,58,237,.12) 0%, transparent 55%),
+        radial-gradient(ellipse 60% 50% at 85% 85%, rgba(168,85,247,.08) 0%, transparent 55%);
+      pointer-events: none; z-index: 0;
+    }
+
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: rgba(255,255,255,.12); border-radius: 3px; }
+
+    /* ── Header ─────────────────────────────────────────────────── */
+    .hdr {
+      position: sticky; top: 0; z-index: 90;
+      background: rgba(15,23,42,.88);
+      backdrop-filter: blur(20px);
+      border-bottom: 1px solid var(--border);
+      padding: 14px 24px;
+    }
+    .hdr-inner {
+      max-width: 900px; margin: 0 auto;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .logo { display: flex; align-items: center; gap: 10px; }
+    .logo-icon {
+      width: 38px; height: 38px; border-radius: 10px;
+      background: #0F172A;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0; overflow: hidden;
+      box-shadow: 0 0 20px rgba(124,58,237,.4);
+    }
+    .logo-icon img { width: 100%; height: 100%; object-fit: cover; border-radius: 10px; }
+    .logo-name {
+      font-size: 18px; font-weight: 800;
+      background: linear-gradient(135deg, #fff 0%, var(--accent-lt) 100%);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    }
+    .logo-sub { font-size: 11px; color: var(--txt3); margin-top: -2px; }
+    .btn-ghost {
+      background: var(--card); border: 1px solid var(--border);
+      color: var(--txt2); padding: 7px 14px; border-radius: 8px;
+      cursor: pointer; font-size: 13px; font-weight: 500;
+      transition: all .2s; white-space: nowrap;
+    }
+    .btn-ghost:hover { border-color: var(--accent); color: var(--txt); }
+
+    /* ── Google User Chip ───────────────────────────────────────── */
+    #g-user-chip {
+      display: none; align-items: center; gap: 7px;
+      background: var(--card); border: 1px solid var(--border);
+      padding: 4px 10px 4px 4px; border-radius: 50px; cursor: default;
+    }
+    #g-user-chip img { width: 26px; height: 26px; border-radius: 50%; }
+    #g-user-chip span { font-size: 12px; font-weight: 600; max-width: 110px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    #g-signin-wrap { display: block; }
+
+    /* ── Main ───────────────────────────────────────────────────── */
+    main { max-width: 900px; margin: 0 auto; padding: 44px 20px 100px; position: relative; z-index: 1; }
+
+    .hero { text-align: center; margin-bottom: 44px; }
+    .hero h1 {
+      font-size: clamp(26px, 5vw, 50px);
+      font-weight: 900; line-height: 1.1; letter-spacing: -.5px; margin-bottom: 12px;
+    }
+    .hero h1 em {
+      font-style: normal;
+      background: linear-gradient(135deg, var(--accent-lt) 0%, #C084FC 100%);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    }
+    .hero p { color: var(--txt2); font-size: 16px; }
+
+    /* ── Card ───────────────────────────────────────────────────── */
+    .card {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: var(--r); padding: 24px; margin-bottom: 16px;
+      backdrop-filter: blur(10px);
+    }
+    .card-title {
+      font-size: 12px; font-weight: 700; text-transform: uppercase;
+      letter-spacing: .08em; color: var(--txt3);
+      margin-bottom: 16px; display: flex; align-items: center; gap: 7px;
+    }
+
+    /* ── Tabs ───────────────────────────────────────────────────── */
+    .tabs {
+      display: flex; gap: 3px;
+      background: rgba(0,0,0,.3); padding: 4px;
+      border-radius: 10px; margin-bottom: 20px;
+    }
+    .tab {
+      flex: 1; padding: 8px 10px; border: none; border-radius: 7px;
+      background: transparent; color: var(--txt2); font-size: 13px;
+      font-weight: 500; cursor: pointer; transition: all .2s;
+    }
+    .tab.active { background: var(--accent); color: #fff; box-shadow: 0 0 18px rgba(124,58,237,.35); }
+    .tab:not(.active):hover { background: rgba(255,255,255,.05); color: var(--txt); }
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; }
+
+    /* ── Form Controls ──────────────────────────────────────────── */
+    .row { display: flex; gap: 8px; }
+    input[type=url], textarea {
+      width: 100%; background: rgba(0,0,0,.35); border: 1px solid var(--border);
+      border-radius: 10px; color: var(--txt); padding: 11px 15px;
+      font-size: 14px; font-family: inherit; outline: none;
+      transition: border-color .2s, box-shadow .2s;
+    }
+    input[type=url]:focus, textarea:focus {
+      border-color: var(--accent); box-shadow: 0 0 0 3px rgba(124,58,237,.15);
+    }
+    input::placeholder, textarea::placeholder { color: var(--txt3); }
+    textarea { resize: vertical; min-height: 140px; }
+
+    /* ── Buttons ────────────────────────────────────────────────── */
+    .btn {
+      padding: 10px 20px; border-radius: 10px; font-size: 14px;
+      font-weight: 600; cursor: pointer; border: none;
+      transition: all .18s; white-space: nowrap; font-family: inherit;
+    }
+    .btn-primary {
+      background: linear-gradient(135deg, var(--accent) 0%, #A855F7 100%);
+      color: #fff; box-shadow: 0 4px 18px rgba(124,58,237,.35);
+    }
+    .btn-primary:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 6px 28px rgba(124,58,237,.5); }
+    .btn-primary:active:not(:disabled) { transform: translateY(0); }
+    .btn-secondary {
+      background: var(--card); border: 1px solid var(--border); color: var(--txt2);
+    }
+    .btn-secondary:hover { border-color: var(--accent); color: var(--txt); }
+    .btn:disabled { opacity: .45; cursor: not-allowed; transform: none !important; }
+
+    /* ── YT Status badge ────────────────────────────────────────── */
+    #yt-status {
+      display: none; font-size: 13px; font-weight: 500;
+      padding: 9px 14px; border-radius: 9px; margin-top: 10px;
+      align-items: center; gap: 8px;
+    }
+    #yt-status.show { display: flex; }
+    #yt-status.s-loading {
+      background: rgba(124,58,237,.1); border: 1px solid rgba(124,58,237,.25);
+      color: var(--accent-lt);
+    }
+    #yt-status.s-ok {
+      background: rgba(16,185,129,.1); border: 1px solid rgba(16,185,129,.25);
+      color: #34D399;
+    }
+    #yt-status.s-warn {
+      background: rgba(245,158,11,.1); border: 1px solid rgba(245,158,11,.25);
+      color: #FCD34D;
+    }
+    #yt-status.s-err {
+      background: rgba(239,68,68,.1); border: 1px solid rgba(239,68,68,.25);
+      color: #FCA5A5;
+    }
+    .status-spin {
+      width: 14px; height: 14px; border: 2px solid rgba(255,255,255,.2);
+      border-top-color: currentColor; border-radius: 50%;
+      animation: spin 1s linear infinite; flex-shrink: 0;
+    }
+
+    /* ── Video Preview ──────────────────────────────────────────── */
+    #vid-preview {
+      display: none; margin-top: 14px;
+      background: rgba(0,0,0,.3); border: 1px solid var(--border);
+      border-radius: 12px; overflow: hidden;
+    }
+    #vid-preview.show { display: block; }
+    .vid-info { display: flex; align-items: center; gap: 12px; padding: 12px 14px; }
+    #vid-thumb {
+      width: 88px; height: 56px; object-fit: cover;
+      border-radius: 7px; flex-shrink: 0; background: var(--bg2);
+    }
+    #vid-title { font-size: 14px; font-weight: 500; }
+    #vid-sub { font-size: 12px; color: var(--txt3); margin-top: 3px; }
+    /* IFrame API player container */
+    #yt-player-wrap {
+      width: 100%; aspect-ratio: 16/9;
+      background: #000; position: relative; overflow: hidden;
+    }
+    #yt-player-wrap iframe,
+    #yt-player-wrap > div { width: 100% !important; height: 100% !important; border: none; }
+
+    /* ── Listen & Transcribe section ───────────────────────────── */
+    #listen-section {
+      display: none; margin-top: 14px;
+      background: rgba(239,68,68,.06); border: 1px solid rgba(239,68,68,.2);
+      border-radius: 12px; padding: 16px 18px;
+    }
+    #listen-section.show { display: block; }
+    #listen-section.listening {
+      background: rgba(239,68,68,.1); border-color: rgba(239,68,68,.4);
+      animation: listenPulse 2s ease infinite;
+    }
+    @keyframes listenPulse {
+      0%,100% { box-shadow: 0 0 0 0 rgba(239,68,68,.15); }
+      50%      { box-shadow: 0 0 0 8px rgba(239,68,68,.0); }
+    }
+    .listen-top { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+    .mic-dot {
+      width: 12px; height: 12px; border-radius: 50%;
+      background: var(--txt3); flex-shrink: 0; transition: background .3s;
+    }
+    .mic-dot.on { background: var(--red); animation: micBlink .9s ease infinite; }
+    @keyframes micBlink { 0%,100%{opacity:1} 50%{opacity:.3} }
+    .listen-status { font-size: 13px; color: var(--txt2); flex: 1; }
+    .listen-status strong { color: var(--txt); }
+    #listen-btn {
+      padding: 8px 18px; border-radius: 9px; font-size: 13px;
+      font-weight: 600; cursor: pointer; border: none;
+      background: linear-gradient(135deg,var(--red),#DC2626);
+      color: #fff; transition: all .18s; font-family: inherit;
+    }
+    #listen-btn.off { background: var(--card); border: 1px solid var(--border); color: var(--txt2); }
+    #listen-btn:hover { opacity: .88; }
+    .listen-hint {
+      font-size: 12px; color: var(--txt3); margin-top: 10px; line-height: 1.6;
+    }
+    .listen-hint strong { color: var(--amber); }
+    #live-preview {
+      margin-top: 12px; max-height: 90px; overflow-y: auto;
+      font-size: 13px; color: var(--txt2); line-height: 1.6;
+      padding: 10px 12px; background: rgba(0,0,0,.25);
+      border-radius: 8px; display: none;
+      border: 1px solid var(--border);
+    }
+    #live-preview.show { display: block; }
+    #live-preview .interim { color: var(--txt3); font-style: italic; }
+    .listen-words {
+      margin-top: 8px; font-size: 12px; color: var(--txt3);
+      display: flex; gap: 16px;
+    }
+    .listen-words span { color: var(--green); font-weight: 600; }
+
+    /* ── Transcript section on YT tab ───────────────────────────── */
+    .tx-section { margin-top: 14px; }
+    .tx-section-hdr {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 8px;
+    }
+    .tx-lbl { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; color: var(--txt3); }
+    .tx-badge {
+      font-size: 11px; font-weight: 600; padding: 3px 8px; border-radius: 10px;
+      background: rgba(16,185,129,.15); border: 1px solid rgba(16,185,129,.25);
+      color: #34D399; display: none;
+    }
+    .tx-badge.show { display: inline-block; }
+
+    /* ── Live Mic Tab ───────────────────────────────────────────── */
+    .mic-tab-body { display: flex; flex-direction: column; align-items: center; gap: 18px; padding: 8px 0 4px; }
+
+    .mic-record-wrap { display: flex; flex-direction: column; align-items: center; gap: 14px; }
+    .mic-record-btn {
+      width: 92px; height: 92px; border-radius: 50%; border: none; cursor: pointer;
+      font-size: 34px; line-height: 1;
+      background: linear-gradient(135deg, var(--accent) 0%, #A855F7 100%);
+      box-shadow: 0 0 0 0 rgba(124,58,237,.45), 0 4px 20px rgba(124,58,237,.35);
+      transition: transform .15s, background .3s;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .mic-record-btn:hover { transform: scale(1.06); }
+    .mic-record-btn.active {
+      background: linear-gradient(135deg, var(--red) 0%, #DC2626 100%);
+      animation: micTabPulse 1.4s ease infinite;
+    }
+    @keyframes micTabPulse {
+      0%   { box-shadow: 0 0 0 0   rgba(239,68,68,.55), 0 4px 20px rgba(239,68,68,.3); }
+      70%  { box-shadow: 0 0 0 22px rgba(239,68,68,.0),  0 4px 20px rgba(239,68,68,.3); }
+      100% { box-shadow: 0 0 0 0   rgba(239,68,68,.0),  0 4px 20px rgba(239,68,68,.3); }
+    }
+    .mic-rec-label {
+      font-size: 14px; font-weight: 600; color: var(--txt2); letter-spacing: .01em;
+    }
+    .mic-rec-label.active { color: var(--red); }
+
+    .mic-controls-row {
+      display: flex; align-items: center; gap: 10px; flex-wrap: wrap; justify-content: center; width: 100%;
+    }
+    .mic-lang-sel {
+      background: rgba(0,0,0,.35); border: 1px solid var(--border); border-radius: 9px;
+      color: var(--txt); padding: 8px 12px; font-size: 13px; font-family: inherit;
+      outline: none; cursor: pointer; transition: border-color .2s;
+    }
+    .mic-lang-sel:focus { border-color: var(--accent); }
+    .mic-stats-row { display: flex; gap: 14px; }
+    .mic-stat-pill {
+      font-size: 12px; color: var(--txt3); background: rgba(255,255,255,.04);
+      border: 1px solid var(--border); border-radius: 8px; padding: 5px 11px;
+    }
+    .mic-stat-pill span { color: var(--green); font-weight: 700; }
+
+    .mic-use-hint {
+      font-size: 13px; color: var(--txt3); text-align: center; line-height: 1.65;
+      max-width: 480px; padding: 10px 14px;
+      background: rgba(124,58,237,.07); border: 1px solid rgba(124,58,237,.18);
+      border-radius: 10px; width: 100%;
+    }
+    .mic-use-hint strong { color: var(--accent-lt); }
+
+    #mic-ta { width: 100%; min-height: 150px; margin-top: 0; }
+    .mic-interim {
+      width: 100%; font-size: 13px; color: var(--txt3); font-style: italic;
+      min-height: 20px; padding: 0 2px; line-height: 1.5;
+    }
+    .mic-bottom-row {
+      display: flex; gap: 8px; justify-content: flex-end; width: 100%;
+    }
+    .mic-clear-btn {
+      padding: 7px 14px; border-radius: 8px; font-size: 13px; font-weight: 500;
+      background: transparent; border: 1px solid var(--border); color: var(--txt3);
+      cursor: pointer; font-family: inherit; transition: all .18s;
+    }
+    .mic-clear-btn:hover { border-color: var(--red); color: var(--red); }
+
+    /* ── CORS Help Modal ────────────────────────────────────────── */
+    #cors-overlay {
+      display: none; position: fixed; inset: 0; z-index: 400;
+      background: rgba(0,0,0,.7); backdrop-filter: blur(6px);
+      align-items: center; justify-content: center;
+    }
+    #cors-overlay.show { display: flex; }
+    #cors-modal {
+      background: #1A2540; border: 1px solid rgba(239,68,68,.35);
+      border-radius: 18px; padding: 32px 28px; width: 100%; max-width: 480px;
+      box-shadow: 0 24px 64px rgba(0,0,0,.5); margin: 0 16px;
+    }
+    #cors-modal h3 { font-size: 17px; font-weight: 700; margin-bottom: 8px; color: #FCA5A5; }
+    #cors-modal p  { font-size: 13px; color: var(--txt2); margin-bottom: 14px; line-height: 1.7; }
+    .cors-step {
+      background: rgba(0,0,0,.3); border: 1px solid var(--border);
+      border-radius: 10px; padding: 14px 16px; margin-bottom: 10px;
+    }
+    .cors-step strong { display: block; font-size: 13px; color: var(--txt); margin-bottom: 4px; }
+    .cors-step code {
+      font-size: 12px; color: var(--accent-lt); background: rgba(124,58,237,.12);
+      padding: 3px 7px; border-radius: 5px; display: inline-block;
+      user-select: all; cursor: pointer;
+    }
+    .cors-step span { font-size: 12px; color: var(--txt3); display: block; margin-top: 4px; }
+
+    /* ── Chrome Extension Modal ────────────────────────────────── */
+    #chrome-overlay {
+      display: none; position: fixed; inset: 0; z-index: 300;
+      background: rgba(0,0,0,.6); backdrop-filter: blur(6px);
+      align-items: center; justify-content: center;
+    }
+    #chrome-overlay.show { display: flex; }
+    #chrome-modal {
+      background: #1A2540; border: 1px solid var(--border);
+      border-radius: 18px; padding: 32px 28px; width: 100%; max-width: 480px;
+      box-shadow: 0 24px 64px rgba(0,0,0,.5); margin: 0 16px;
+    }
+    #chrome-modal h3 { font-size: 18px; font-weight: 700; margin-bottom: 8px; }
+    #chrome-modal p  { font-size: 13px; color: var(--txt2); margin-bottom: 20px; line-height: 1.6; }
+    .chrome-steps { list-style: none; margin-bottom: 24px; display: flex; flex-direction: column; gap: 10px; }
+    .chrome-steps li {
+      display: flex; align-items: flex-start; gap: 12px;
+      font-size: 13px; color: var(--txt2);
+    }
+    .chrome-steps li .step-num {
+      flex-shrink: 0; width: 24px; height: 24px; border-radius: 50%;
+      background: var(--accent); color: #fff; font-size: 12px; font-weight: 700;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .chrome-steps li code {
+      background: rgba(0,0,0,.4); padding: 1px 6px; border-radius: 5px;
+      font-family: monospace; font-size: 12px; color: var(--accent-lt);
+    }
+    .chrome-dl-btn {
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+      width: 100%; padding: 13px; border-radius: 11px;
+      background: linear-gradient(135deg, #4285F4, #34A853);
+      color: #fff; font-size: 15px; font-weight: 700;
+      text-decoration: none; border: none; cursor: pointer;
+      box-shadow: 0 4px 18px rgba(66,133,244,.35);
+      transition: opacity .2s; margin-bottom: 14px;
+    }
+    .chrome-dl-btn:hover { opacity: .88; }
+    .chrome-close-row { text-align: center; }
+    .chrome-close-row button {
+      background: none; border: none; color: var(--txt3); font-size: 13px;
+      cursor: pointer; padding: 4px 8px;
+    }
+    .chrome-close-row button:hover { color: var(--txt); }
+
+    /* ── API Key Modal ──────────────────────────────────────────── */
+    #key-overlay {
+      display: none; position: fixed; inset: 0; z-index: 300;
+      background: rgba(0,0,0,.6); backdrop-filter: blur(6px);
+      align-items: center; justify-content: center;
+    }
+    #key-overlay.show { display: flex; }
+    #key-modal {
+      background: #1A2540; border: 1px solid var(--border);
+      border-radius: 18px; padding: 32px 28px; width: 100%; max-width: 420px;
+      box-shadow: 0 24px 64px rgba(0,0,0,.5); margin: 0 16px;
+    }
+    #key-modal h3 { font-size: 18px; font-weight: 700; margin-bottom: 6px; }
+    #key-modal p  { font-size: 13px; color: var(--txt2); margin-bottom: 18px; line-height: 1.6; }
+    #key-modal a  { color: var(--accent-lt); text-decoration: none; }
+    #key-modal a:hover { text-decoration: underline; }
+    #key-input {
+      width: 100%; background: rgba(0,0,0,.35); border: 1px solid var(--border);
+      border-radius: 10px; color: var(--txt); padding: 11px 14px;
+      font-size: 14px; font-family: inherit; outline: none;
+      transition: border-color .2s; margin-bottom: 6px;
+    }
+    #key-input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(124,58,237,.15); }
+    .key-show-row {
+      display: flex; align-items: center; gap: 8px; margin-bottom: 18px;
+    }
+    .key-show-row label { font-size: 13px; color: var(--txt3); cursor: pointer; user-select: none; }
+    .key-modal-btns { display: flex; gap: 10px; }
+    .key-status {
+      font-size: 12px; margin-bottom: 14px; padding: 8px 12px;
+      border-radius: 8px; display: none;
+    }
+    .key-status.ok  { display: block; background: rgba(16,185,129,.1);  border: 1px solid rgba(16,185,129,.25);  color: #34D399; }
+    .key-status.err { display: block; background: rgba(239,68,68,.1);   border: 1px solid rgba(239,68,68,.25);   color: #FCA5A5; }
+    #api-key-btn.has-key { border-color: rgba(16,185,129,.4); color: #34D399; }
+
+    /* ── Drop Zone ──────────────────────────────────────────────── */
+    .drop-zone {
+      border: 2px dashed var(--border); border-radius: 12px;
+      padding: 36px 20px; text-align: center; cursor: pointer; transition: all .2s;
+    }
+    .drop-zone:hover, .drop-zone.over { border-color: var(--accent); background: var(--accent-dim); }
+    .drop-icon { font-size: 34px; margin-bottom: 8px; }
+    .drop-text { color: var(--txt2); font-size: 14px; line-height: 1.6; }
+    .drop-text strong { color: var(--accent-lt); }
+    #file-badge {
+      display: none; margin-top: 10px; padding: 7px 12px; font-size: 13px;
+      background: rgba(124,58,237,.12); border: 1px solid rgba(124,58,237,.25);
+      border-radius: 8px; color: var(--accent-lt);
+    }
+    #file-badge.show { display: block; }
+    #fi-ta { margin-top: 12px; min-height: 120px; }
+
+    /* ── Mode Pills ─────────────────────────────────────────────── */
+    .modes { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 20px; }
+    .mode-pill {
+      padding: 7px 16px; border-radius: 20px; border: 1px solid var(--border);
+      background: transparent; color: var(--txt2); font-size: 13px;
+      font-weight: 500; cursor: pointer; transition: all .2s; font-family: inherit;
+    }
+    .mode-pill.active { border-color: var(--accent); background: var(--accent-dim); color: var(--accent-lt); }
+    .mode-pill:hover:not(.active) { border-color: rgba(255,255,255,.18); color: var(--txt); }
+
+    /* ── Provider Pills ─────────────────────────────────────────── */
+    .provider-badge {
+      font-size: 10px; font-weight: 700; padding: 1px 6px; border-radius: 6px;
+      background: rgba(16,185,129,.2); color: #34D399; margin-left: 5px;
+      vertical-align: middle;
+    }
+    .provider-key-notice {
+      font-size: 12px; color: var(--amber); margin-top: 8px; min-height: 18px;
+    }
+    .provider-key-notice a { color: var(--accent-lt); text-decoration: underline; cursor: pointer; }
+
+    /* ── Settings Panel ─────────────────────────────────────────── */
+    #settings-overlay {
+      display: none; position: fixed; inset: 0; z-index: 199;
+      background: rgba(0,0,0,.5); backdrop-filter: blur(4px);
+    }
+    #settings-overlay.show { display: block; }
+    #settings-panel {
+      position: fixed; top: 0; right: -540px; bottom: 0;
+      width: 100%; max-width: 520px;
+      background: #111827; border-left: 1px solid var(--border);
+      z-index: 200; overflow-y: auto;
+      transition: right .3s cubic-bezier(.22,1,.36,1);
+      display: flex; flex-direction: column;
+    }
+    #settings-panel.show { right: 0; }
+    .settings-hdr {
+      position: sticky; top: 0; z-index: 10;
+      background: #111827; border-bottom: 1px solid var(--border);
+      padding: 18px 20px; display: flex; align-items: center; justify-content: space-between;
+    }
+    .settings-hdr h2 { font-size: 16px; font-weight: 700; }
+    .settings-hdr-close {
+      background: none; border: none; color: var(--txt3); font-size: 20px;
+      cursor: pointer; line-height: 1; padding: 4px 6px; border-radius: 6px;
+    }
+    .settings-hdr-close:hover { color: var(--txt); background: var(--card); }
+    .settings-section-label {
+      font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .09em;
+      color: var(--txt3); padding: 20px 20px 10px;
+    }
+    .prov-card {
+      margin: 0 14px 10px;
+      background: var(--card); border: 1.5px solid var(--border);
+      border-radius: 14px; overflow: hidden; cursor: pointer;
+      transition: border-color .2s;
+    }
+    .prov-card:hover { border-color: rgba(124,58,237,.4); }
+    .prov-card.active-prov { border-color: var(--accent); }
+    .prov-card-top {
+      display: flex; align-items: center; gap: 12px; padding: 15px 16px;
+    }
+    .prov-radio {
+      width: 18px; height: 18px; border-radius: 50%; flex-shrink: 0;
+      border: 2px solid var(--txt3);
+      display: flex; align-items: center; justify-content: center; transition: border-color .2s;
+    }
+    .prov-card.active-prov .prov-radio { border-color: var(--accent); }
+    .prov-card.active-prov .prov-radio::after {
+      content: ''; width: 9px; height: 9px; border-radius: 50%; background: var(--accent); display: block;
+    }
+    .prov-icon { font-size: 22px; flex-shrink: 0; width: 36px; text-align: center; }
+    .prov-meta { flex: 1; min-width: 0; }
+    .prov-name-row { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+    .prov-name { font-size: 14px; font-weight: 700; }
+    .prov-tag {
+      font-size: 9px; font-weight: 800; padding: 2px 6px; border-radius: 5px;
+      text-transform: uppercase; letter-spacing: .05em;
+    }
+    .prov-tag.free { background: rgba(16,185,129,.2); color: #34D399; }
+    .prov-tag.paid { background: rgba(245,158,11,.15); color: #FBBF24; }
+    .prov-model { font-size: 11px; color: var(--txt3); margin-top: 2px; }
+    .prov-active-chip {
+      font-size: 11px; font-weight: 600; color: var(--green); flex-shrink: 0;
+      background: rgba(16,185,129,.12); padding: 3px 9px; border-radius: 20px;
+    }
+    .prov-key-body {
+      border-top: 1px solid var(--border); padding: 14px 16px; display: none;
+    }
+    .prov-key-body.show { display: block; }
+    .prov-desc {
+      font-size: 12px; color: var(--txt2); margin-bottom: 12px; line-height: 1.55;
+    }
+    .prov-get-link {
+      display: inline-flex; align-items: center; gap: 5px;
+      font-size: 12px; font-weight: 600; color: var(--accent-lt);
+      text-decoration: none; margin-bottom: 12px;
+      border: 1px solid rgba(124,58,237,.3); padding: 5px 10px; border-radius: 7px;
+      background: rgba(124,58,237,.08); transition: background .2s;
+    }
+    .prov-get-link:hover { background: rgba(124,58,237,.18); }
+    .prov-key-row { display: flex; gap: 8px; }
+    .prov-key-row input {
+      flex: 1; background: rgba(0,0,0,.4); border: 1px solid var(--border);
+      border-radius: 8px; color: var(--txt); padding: 9px 12px;
+      font-size: 12px; font-family: monospace; outline: none;
+    }
+    .prov-key-row input:focus { border-color: var(--accent); }
+    .prov-save-btn {
+      background: var(--accent); color: #fff; border: none;
+      border-radius: 8px; padding: 9px 14px; font-size: 13px; font-weight: 600;
+      cursor: pointer; white-space: nowrap; transition: opacity .2s;
+    }
+    .prov-save-btn:hover { opacity: .85; }
+    .prov-key-saved { font-size: 11px; color: var(--green); margin-top: 7px; display: none; }
+    .prov-use-btn {
+      width: 100%; margin-top: 10px; padding: 9px;
+      background: transparent; border: 1.5px solid var(--accent); color: var(--accent-lt);
+      border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; transition: all .2s;
+    }
+    .prov-use-btn:hover { background: var(--accent); color: #fff; }
+    .prov-use-btn.is-active {
+      background: rgba(16,185,129,.08); border-color: var(--green); color: var(--green); cursor: default;
+    }
+    .settings-footer { padding: 20px; margin-top: auto; }
+    .settings-footer p { font-size: 12px; color: var(--txt3); line-height: 1.6; }
+
+    /* ── Bottom Row ─────────────────────────────────────────────── */
+    .btm-row {
+      display: flex; align-items: center;
+      justify-content: space-between; gap: 14px; flex-wrap: wrap; margin-top: 4px;
+    }
+    #wc-display { font-size: 13px; color: var(--txt3); }
+    #wc-display span { color: var(--txt2); font-weight: 600; }
+    .btn-sum { padding: 13px 34px; font-size: 15px; border-radius: 12px; }
+
+    /* ── Loading overlay ────────────────────────────────────────── */
+    #loading { display: none; text-align: center; padding: 56px 24px; }
+    #loading.show { display: block; }
+    .spin {
+      width: 52px; height: 52px; border: 3px solid var(--border);
+      border-top-color: var(--accent); border-radius: 50%;
+      margin: 0 auto 24px; animation: spin 1s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    #load-msg { font-size: 16px; color: var(--txt2); margin-bottom: 6px; }
+    #load-sub { font-size: 13px; color: var(--txt3); }
+    .dots span { animation: blink 1.4s infinite both; }
+    .dots span:nth-child(2) { animation-delay: .2s; }
+    .dots span:nth-child(3) { animation-delay: .4s; }
+    @keyframes blink { 0%,80%,100%{opacity:0} 40%{opacity:1} }
+
+    hr { border: none; border-top: 1px solid var(--border); margin: 18px 0; }
+
+    /* ── Results ────────────────────────────────────────────────── */
+    #results { display: none; }
+    #results.show { display: block; }
+
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(18px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .ani { animation: fadeUp .4s ease both; }
+
+    .stats-row {
+      display: grid; grid-template-columns: repeat(4, 1fr);
+      gap: 10px; margin-bottom: 14px;
+    }
+    .stat {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 12px; padding: 14px; text-align: center;
+    }
+    .stat-val { font-size: 22px; font-weight: 800; color: var(--accent-lt); }
+    .stat-lbl { font-size: 11px; color: var(--txt3); margin-top: 3px; }
+
+    .export-bar {
+      display: flex; gap: 7px; flex-wrap: wrap;
+      padding: 14px 16px; background: rgba(0,0,0,.2);
+      border: 1px solid var(--border); border-radius: 12px; margin-bottom: 14px;
+    }
+
+    /* Result cards */
+    .res-hero {
+      background: linear-gradient(135deg, rgba(124,58,237,.13), rgba(168,85,247,.08));
+      border: 1px solid rgba(124,58,237,.28);
+    }
+    .res-hero-body { display: flex; gap: 18px; align-items: flex-start; }
+    .res-thumb {
+      width: 170px; height: 106px; object-fit: cover;
+      border-radius: 10px; flex-shrink: 0; background: var(--bg2);
+    }
+    .res-meta { flex: 1; }
+    .res-title { font-size: 21px; font-weight: 800; line-height: 1.25; margin-bottom: 8px; }
+    .res-oneliner { font-size: 14px; color: var(--txt2); margin-bottom: 12px; line-height: 1.55; }
+    .res-tags { display: flex; flex-wrap: wrap; gap: 6px; }
+
+    .tag { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 12px; font-weight: 500; }
+    .t-topic    { background: rgba(124,58,237,.2);  border: 1px solid rgba(124,58,237,.3);  color: var(--accent-lt); }
+    .t-positive { background: rgba(16,185,129,.18); border: 1px solid rgba(16,185,129,.3);  color: #34D399; }
+    .t-neutral  { background: rgba(100,116,139,.2); border: 1px solid rgba(100,116,139,.3); color: #94A3B8; }
+    .t-mixed    { background: rgba(245,158,11,.18); border: 1px solid rgba(245,158,11,.3);  color: #FCD34D; }
+    .t-critical { background: rgba(239,68,68,.18);  border: 1px solid rgba(239,68,68,.3);   color: #FCA5A5; }
+    .t-meta     { background: rgba(255,255,255,.06); border: 1px solid var(--border);        color: var(--txt2); }
+
+    .tldr-box {
+      background: rgba(124,58,237,.07); border: 1px solid rgba(124,58,237,.2);
+      border-radius: 12px; padding: 18px 20px;
+    }
+    .tldr-lbl {
+      font-size: 10px; font-weight: 800; text-transform: uppercase;
+      letter-spacing: .12em; color: var(--accent-lt); margin-bottom: 8px;
+    }
+    .tldr-txt { font-size: 15px; color: var(--txt); line-height: 1.7; }
+
+    .kp-list { list-style: none; }
+    .kp-item {
+      display: flex; gap: 12px; padding: 11px 0;
+      border-bottom: 1px solid var(--border); animation: fadeUp .3s ease both;
+    }
+    .kp-item:last-child { border-bottom: none; }
+    .kp-num {
+      width: 26px; height: 26px; border-radius: 7px; flex-shrink: 0;
+      background: var(--accent-dim); border: 1px solid rgba(124,58,237,.3);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 11px; font-weight: 700; color: var(--accent-lt);
+    }
+    .kp-txt { font-size: 14px; color: var(--txt); line-height: 1.6; padding-top: 3px; }
+
+    .acc-item { border: 1px solid var(--border); border-radius: 10px; margin-bottom: 7px; overflow: hidden; }
+    .acc-btn {
+      width: 100%; background: rgba(0,0,0,.22); border: none;
+      padding: 13px 16px; display: flex; align-items: center; justify-content: space-between;
+      cursor: pointer; color: var(--txt); font-size: 14px; font-weight: 600;
+      text-align: left; transition: background .18s; font-family: inherit;
+    }
+    .acc-btn:hover { background: rgba(124,58,237,.1); }
+    .acc-arr { font-size: 11px; transition: transform .2s; }
+    .acc-btn.open .acc-arr { transform: rotate(180deg); }
+    .acc-body {
+      display: none; padding: 14px 16px; background: rgba(0,0,0,.1);
+      font-size: 14px; color: var(--txt2); line-height: 1.7;
+    }
+    .acc-body.open { display: block; }
+
+    .ai-item {
+      display: flex; align-items: flex-start; gap: 12px;
+      padding: 10px 0; border-bottom: 1px solid var(--border);
+    }
+    .ai-item:last-child { border-bottom: none; }
+    .ai-cb {
+      width: 20px; height: 20px; border: 2px solid var(--border);
+      border-radius: 6px; flex-shrink: 0; margin-top: 2px;
+      cursor: pointer; transition: all .18s; position: relative;
+    }
+    .ai-cb.on { background: var(--accent); border-color: var(--accent); }
+    .ai-cb.on::after {
+      content: '✓'; position: absolute; top: 50%; left: 50%;
+      transform: translate(-50%,-50%); color: #fff; font-size: 11px; font-weight: 700;
+    }
+    .ai-txt { font-size: 14px; color: var(--txt); line-height: 1.6; }
+
+    .quote-item {
+      border-left: 3px solid var(--accent); padding: 14px 18px; margin-bottom: 10px;
+      background: rgba(124,58,237,.05); border-radius: 0 10px 10px 0; position: relative;
+    }
+    .quote-item::before {
+      content: '\201C'; position: absolute; top: -4px; left: 10px;
+      font-size: 44px; color: var(--accent); opacity: .35;
+      font-family: Georgia, serif; line-height: 1;
+    }
+    .quote-item p { font-size: 14px; font-style: italic; color: var(--txt2); line-height: 1.7; padding-top: 10px; }
+
+    .aud-badge {
+      display: inline-block; padding: 8px 18px;
+      background: rgba(124,58,237,.14); border: 1px solid rgba(124,58,237,.28);
+      border-radius: 20px; color: var(--accent-lt); font-size: 14px; font-weight: 500;
+    }
+
+    /* ── Toast ──────────────────────────────────────────────────── */
+    #toast-wrap {
+      position: fixed; bottom: 22px; right: 22px;
+      z-index: 500; display: flex; flex-direction: column; gap: 8px;
+    }
+    .toast {
+      background: var(--bg2); border: 1px solid var(--border);
+      border-radius: 10px; padding: 12px 16px; font-size: 14px; color: var(--txt);
+      display: flex; align-items: center; gap: 9px;
+      max-width: 310px; box-shadow: 0 8px 32px rgba(0,0,0,.4);
+      animation: slideR .28s ease;
+    }
+    .toast.ok   { border-left: 3px solid var(--green); }
+    .toast.err  { border-left: 3px solid var(--red); }
+    .toast.warn { border-left: 3px solid var(--amber); }
+    @keyframes slideR { from{opacity:0;transform:translateX(16px)} to{opacity:1;transform:translateX(0)} }
+
+    /* ── History Panel ──────────────────────────────────────────── */
+    #hist-overlay {
+      display: none; position: fixed; inset: 0;
+      background: rgba(0,0,0,.55); z-index: 200; backdrop-filter: blur(4px);
+    }
+    #hist-overlay.show { display: block; }
+    #hist-panel {
+      position: fixed; right: 0; top: 0; bottom: 0;
+      width: 300px; max-width: 88vw; background: #1A2540;
+      border-left: 1px solid var(--border); z-index: 201; padding: 22px;
+      overflow-y: auto; display: flex; flex-direction: column;
+      transform: translateX(100%); transition: transform .28s ease;
+    }
+    #hist-panel.show { transform: translateX(0); }
+    .hp-hdr {
+      display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px;
+    }
+    .hp-title { font-size: 16px; font-weight: 700; }
+    .hp-close { background: none; border: none; color: var(--txt3); font-size: 20px; cursor: pointer; }
+    .hist-item {
+      padding: 13px; border: 1px solid var(--border);
+      border-radius: 10px; margin-bottom: 8px; cursor: pointer; transition: all .18s;
+    }
+    .hist-item:hover { border-color: var(--accent); background: var(--accent-dim); }
+    .hi-title {
+      font-size: 14px; font-weight: 600; color: var(--txt);
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-bottom: 5px;
+    }
+    .hi-meta { font-size: 12px; color: var(--txt3); display: flex; justify-content: space-between; }
+    .hist-empty { text-align: center; color: var(--txt3); font-size: 14px; padding: 28px 0; }
+
+    /* ── Manual transcript guide ──────────────────────────────────── */
+    #manual-guide {
+      display: none; margin-top: 14px;
+      background: rgba(245,158,11,.07); border: 1px solid rgba(245,158,11,.25);
+      border-radius: 12px; padding: 16px 18px;
+    }
+    #manual-guide.show { display: block; }
+    .guide-title { font-size: 13px; font-weight: 700; color: #FCD34D; margin-bottom: 10px; }
+    .guide-steps { list-style: none; counter-reset: steps; }
+    .guide-steps li {
+      counter-increment: steps; display: flex; align-items: flex-start;
+      gap: 10px; font-size: 13px; color: var(--txt2); padding: 5px 0;
+    }
+    .guide-steps li::before {
+      content: counter(steps); min-width: 20px; height: 20px;
+      background: rgba(245,158,11,.2); border: 1px solid rgba(245,158,11,.3);
+      border-radius: 50%; display: flex; align-items: center; justify-content: center;
+      font-size: 11px; font-weight: 700; color: #FCD34D; flex-shrink: 0; margin-top: 1px;
+    }
+    .guide-steps li strong { color: var(--txt); }
+
+    /* ── Responsive ─────────────────────────────────────────────── */
+    @media (max-width: 600px) {
+      .stats-row { grid-template-columns: repeat(2,1fr); }
+      .res-hero-body { flex-direction: column; }
+      .res-thumb { width: 100%; height: 180px; }
+      .btm-row { justify-content: flex-end; }
+      #wc-display { width: 100%; }
+    }
+  </style>
+</head>
+<body>
+
+<header class="hdr">
+  <div class="hdr-inner">
+    <div class="logo">
+      <div class="logo-icon"><img src="scooby-icon.png" alt="Scooby" /></div>
+      <div>
+        <div class="logo-name">Scooby</div>
+        <div class="logo-sub">AI Video Summarizer</div>
+      </div>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center">
+      <!-- Google Sign-In -->
+      <div id="g-signin-wrap"></div>
+      <div id="g-user-chip">
+        <img id="g-avatar" src="" alt="" />
+        <span id="g-name"></span>
+        <button onclick="gSignOut()" style="background:none;border:none;color:var(--txt3);font-size:11px;cursor:pointer;padding:2px 4px;" title="Sign out">✕</button>
+      </div>
+      <button class="btn-ghost" onclick="openChromeModal()" style="border-color:rgba(66,133,244,.45);color:#7eb4ff;">🧩 Add to Chrome</button>
+      <button class="btn-ghost" id="api-key-btn" onclick="openSettings()">⚙ Settings</button>
+      <button class="btn-ghost" onclick="openHistory()">🕒 History</button>
+    </div>
+  </div>
+</header>
+
+<main>
+  <div class="hero">
+    <h1>Summarize any video<br><em>in seconds with AI</em></h1>
+    <p>Start the Audio / Video — play any video, podcast, call or meeting — then click the mic icon to transcribe it live. Works on any device with a microphone. Supports Chrome, Edge &amp; Safari.</p>
+  </div>
+
+  <!-- ── Input Card ──────────────────────────────────────────────── -->
+  <div class="card" id="input-card">
+    <div class="tabs">
+      <button class="tab active" onclick="switchTab('tx',this)">📝 Paste Transcript</button>
+      <button class="tab"        onclick="switchTab('fi',this)">📂 Upload File</button>
+      <button class="tab"        onclick="switchTab('mic',this)">🎤 Live Mic</button>
+    </div>
+
+    <!-- Transcript Tab -->
+    <div class="tab-panel active" id="tab-tx">
+      <textarea id="tx-ta"
+        placeholder="Paste your transcript here…&#10;&#10;Supports: YouTube captions, Loom, Zoom, Otter.ai, Rev, or any raw text.">
+      </textarea>
+    </div>
+
+    <!-- File Tab -->
+    <div class="tab-panel" id="tab-fi">
+      <div class="drop-zone" id="drop-zone"
+        onclick="document.getElementById('file-inp').click()"
+        ondrop="onDrop(event)" ondragover="onDragOver(event)" ondragleave="onDragLeave(event)">
+        <div class="drop-icon">📁</div>
+        <div class="drop-text"><strong>Click to browse</strong> or drag &amp; drop<br>Supports .txt files</div>
+        <input type="file" id="file-inp" accept=".txt" style="display:none" onchange="onFileSelect(event)" />
+      </div>
+      <div id="file-badge"></div>
+      <textarea id="fi-ta" placeholder="File content will appear here…"></textarea>
+    </div>
+
+    <!-- Live Mic Tab -->
+    <div class="tab-panel" id="tab-mic">
+      <div class="mic-tab-body">
+
+        <!-- Big record button -->
+        <div class="mic-record-wrap">
+          <button class="mic-record-btn" id="mic-rec-btn" onclick="toggleMicTab()" title="Start / Stop recording">
+            🎤
+          </button>
+          <div class="mic-rec-label" id="mic-rec-label">Tap to start recording</div>
+        </div>
+
+        <!-- Language quick-switch -->
+        <div style="display:flex;gap:8px;margin-bottom:10px">
+          <button class="mode-pill lang-pill active" style="flex:1;font-size:13px" data-miclang="en-US" onclick="setMicLang(this)">🇺🇸 English</button>
+          <button class="mode-pill lang-pill"         style="flex:1;font-size:13px" data-miclang="hi-IN" onclick="setMicLang(this)">🇮🇳 हिंदी</button>
+        </div>
+
+        <!-- Controls: language + live stats -->
+        <div class="mic-controls-row">
+          <select id="mic-lang" class="mic-lang-sel" onchange="if(micTabState.active){stopMicTab();startMicTab();}">
+            <option value="en-US">🇺🇸 English (US)</option>
+            <option value="en-GB">🇬🇧 English (UK)</option>
+            <option value="hi-IN">🇮🇳 Hindi</option>
+            <option value="es-ES">🇪🇸 Spanish</option>
+            <option value="fr-FR">🇫🇷 French</option>
+            <option value="de-DE">🇩🇪 German</option>
+            <option value="zh-CN">🇨🇳 Chinese (Mandarin)</option>
+            <option value="ja-JP">🇯🇵 Japanese</option>
+            <option value="ko-KR">🇰🇷 Korean</option>
+            <option value="pt-BR">🇧🇷 Portuguese (Brazil)</option>
+            <option value="ar-SA">🇸🇦 Arabic</option>
+            <option value="ru-RU">🇷🇺 Russian</option>
+          </select>
+          <div class="mic-stats-row">
+            <div class="mic-stat-pill">Words: <span id="mic-wc">0</span></div>
+            <div class="mic-stat-pill">Time: <span id="mic-time">0:00</span></div>
+          </div>
+        </div>
+
+        <!-- Live transcript textarea -->
+        <textarea id="mic-ta" placeholder="Your live transcript appears here…&#10;&#10;▶ Start the Audio / Video&#10;🎤 Then click the mic icon above to begin transcribing"></textarea>
+
+        <!-- Interim (in-progress words) -->
+        <div class="mic-interim" id="mic-interim"></div>
+
+        <!-- Clear button -->
+        <div class="mic-bottom-row">
+          <button class="mic-clear-btn" onclick="clearMicTab()">🗑 Clear</button>
+        </div>
+
+      </div>
+    </div>
+
+    <hr />
+
+    <!-- Mode selector -->
+    <div class="card-title" style="margin-bottom:12px">📊 Summary Mode</div>
+    <div class="modes">
+      <button class="mode-pill active" data-mode="detailed"  onclick="selectMode(this)">📋 Detailed</button>
+      <button class="mode-pill"        data-mode="quick"     onclick="selectMode(this)">⚡ Quick</button>
+      <button class="mode-pill"        data-mode="executive" onclick="selectMode(this)">🎯 Executive</button>
+    </div>
+
+    <!-- Summary Language selector -->
+    <div class="card-title" style="margin-bottom:12px;margin-top:18px">🌐 Summary Language</div>
+    <div class="modes">
+      <button class="mode-pill lang-pill active" data-lang="en" onclick="selectLang(this)">🇬🇧 English</button>
+      <button class="mode-pill lang-pill"         data-lang="hi" onclick="selectLang(this)">🇮🇳 हिंदी (Hindi)</button>
+    </div>
+
+    <div class="btm-row">
+      <div id="wc-display">Word count: <span>—</span></div>
+      <button class="btn btn-primary btn-sum" onclick="doSummarize()" id="sum-btn">✨ Summarize</button>
+    </div>
+  </div>
+
+  <!-- ── Loading ────────────────────────────────────────────────── -->
+  <div id="loading">
+    <div class="spin"></div>
+    <div id="load-msg">Analyzing transcript<span class="dots"><span>.</span><span>.</span><span>.</span></span></div>
+    <div id="load-sub">This usually takes 5–15 seconds</div>
+  </div>
+
+  <!-- ── Results ────────────────────────────────────────────────── -->
+  <div id="results">
+    <div class="stats-row" id="stats-row"></div>
+    <div class="export-bar ani" style="animation-delay:.05s">
+      <button class="btn btn-secondary" onclick="doCopy()">📋 Copy</button>
+      <button class="btn btn-secondary" onclick="doDownload()">📄 Download .txt</button>
+      <button class="btn btn-secondary" onclick="doEmail()">📧 Email Draft</button>
+      <button class="btn btn-secondary" onclick="resetApp()" style="margin-left:auto">🔄 New Summary</button>
+    </div>
+    <div id="out"></div>
+  </div>
+</main>
+
+<div id="toast-wrap"></div>
+
+<div id="hist-overlay" onclick="closeHistory()"></div>
+<div id="hist-panel">
+  <div class="hp-hdr">
+    <div class="hp-title">🕒 Recent Summaries</div>
+    <button class="hp-close" onclick="closeHistory()">✕</button>
+  </div>
+  <div id="hist-list"></div>
+</div>
+
+<!-- CORS / Network Help Modal -->
+<div id="cors-overlay" onclick="if(event.target===this)this.classList.remove('show')">
+  <div id="cors-modal">
+    <h3>⚠️ Network Error — "Failed to fetch"</h3>
+    <p>
+      Your browser blocked the request to Anthropic's API because this page is opened as a local file (<code style="color:var(--accent-lt);background:rgba(124,58,237,.12);padding:2px 6px;border-radius:4px">file://</code>).
+      Fix it by serving the file over HTTP — takes 30 seconds:
+    </p>
+
+    <div class="cors-step">
+      <strong>Option 1 — VS Code (recommended)</strong>
+      <span>Install the <b>Live Server</b> extension → right-click <b>index.html</b> → <b>Open with Live Server</b></span>
+    </div>
+
+    <div class="cors-step">
+      <strong>Option 2 — Python (built into Mac &amp; most PCs)</strong>
+      <code onclick="navigator.clipboard.writeText(this.textContent).then(()=>toast('Copied!','ok'))">python -m http.server 8080</code>
+      <span>Run in the Scooby folder, then open <b>http://localhost:8080</b> in Chrome</span>
+    </div>
+
+    <div class="cors-step">
+      <strong>Option 3 — Node / npx (if Node is installed)</strong>
+      <code onclick="navigator.clipboard.writeText(this.textContent).then(()=>toast('Copied!','ok'))">npx serve .</code>
+      <span>Run in the Scooby folder, then open the URL it prints</span>
+    </div>
+
+    <div style="margin-top:18px">
+      <button class="btn btn-primary" onclick="document.getElementById('cors-overlay').classList.remove('show')">Got it</button>
+    </div>
+  </div>
+</div>
+
+<!-- Chrome Extension Modal -->
+<div id="chrome-overlay" onclick="if(event.target===this)closeChromeModal()">
+  <div id="chrome-modal">
+    <h3>🧩 Install Scooby on Chrome</h3>
+    <p>Download the extension package, then follow these 4 steps to load it into Chrome.</p>
+    <a class="chrome-dl-btn" href="./scooby-chrome-extension.zip" download>
+      ⬇️ Download Scooby Extension (.zip)
+    </a>
+    <ol class="chrome-steps">
+      <li>
+        <span class="step-num">1</span>
+        <span>Unzip the downloaded file — you'll get a folder called <code>chrome-extension</code></span>
+      </li>
+      <li>
+        <span class="step-num">2</span>
+        <span>Open Chrome and go to <code>chrome://extensions</code></span>
+      </li>
+      <li>
+        <span class="step-num">3</span>
+        <span>Enable <strong>Developer mode</strong> (toggle in the top-right corner)</span>
+      </li>
+      <li>
+        <span class="step-num">4</span>
+        <span>Click <strong>Load unpacked</strong> and select the unzipped <code>chrome-extension</code> folder</span>
+      </li>
+    </ol>
+    <p style="margin-bottom:0;font-size:12px;color:var(--txt3);">After loading, click the 🧩 puzzle icon in Chrome's toolbar and pin Scooby for quick access.</p>
+    <div class="chrome-close-row" style="margin-top:18px">
+      <button onclick="closeChromeModal()">✕ Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- Settings Panel -->
+<div id="settings-overlay" onclick="closeSettings()"></div>
+<div id="settings-panel">
+  <div class="settings-hdr">
+    <h2>⚙ Settings</h2>
+    <button class="settings-hdr-close" onclick="closeSettings()">✕</button>
+  </div>
+  <div class="settings-section-label">AI Provider</div>
+  <div id="prov-cards-list"></div>
+  <div class="settings-footer">
+    <p>Keys are stored only in your browser (localStorage). Nothing is sent to external servers except the transcript you choose to summarize.</p>
+  </div>
+</div>
+
+<!-- PWA Service Worker -->
+<script>
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('./sw.js').catch(() => {});
+    });
+  }
+</script>
+
+<!-- YouTube IFrame Player API -->
+<script>
+  window.onYouTubeIframeAPIReady = function () {
+    window._ytApiReady = true;
+    if (window._pendingMount) { window._pendingMount(); window._pendingMount = null; }
+  };
+</script>
+<script src="https://www.youtube.com/iframe_api" async></script>
+
+<script>
+/* ══════════════════════════════════════════════════════
+   CONFIG
+══════════════════════════════════════════════════════ */
+const PROVIDERS = {
+  mistral: {
+    name: 'Mistral AI', icon: '🌐',
+    model: 'open-mistral-7b',
+    endpoint: 'https://api.mistral.ai/v1/chat/completions',
+    format: 'openai',
+    defaultKey: 'GVJKDnOH9iaYlCToYhvwebwQ3lDBGjqN',
+    apiUrl: 'https://console.mistral.ai',
+    placeholder: 'Paste your Mistral API key…',
+    free: true,
+    desc: 'Fast & free. Best for everyday summaries.',
+    storageKey: 'scooby_api_key_mistral',
+  },
+  openai: {
+    name: 'OpenAI', icon: '🤖',
+    model: 'gpt-4o-mini',
+    endpoint: 'https://api.openai.com/v1/chat/completions',
+    format: 'openai',
+    defaultKey: '',
+    apiUrl: 'https://platform.openai.com/api-keys',
+    placeholder: 'sk-…',
+    free: false,
+    desc: 'GPT-4o mini — smart & affordable. Requires a paid account.',
+    storageKey: 'scooby_api_key_openai',
+  },
+  groq: {
+    name: 'Groq (Llama 3)', icon: '⚡',
+    model: 'llama3-8b-8192',
+    endpoint: 'https://api.groq.com/openai/v1/chat/completions',
+    format: 'openai',
+    defaultKey: '',
+    apiUrl: 'https://console.groq.com/keys',
+    placeholder: 'gsk_…',
+    free: true,
+    desc: 'Llama 3 on Groq cloud. Extremely fast with a generous free tier.',
+    storageKey: 'scooby_api_key_groq',
+  },
+  gemini: {
+    name: 'Google Gemini', icon: '💎',
+    model: 'gemini-1.5-flash',
+    endpoint: 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent',
+    format: 'gemini',
+    defaultKey: '',
+    apiUrl: 'https://aistudio.google.com/app/apikey',
+    placeholder: 'AIza…',
+    free: true,
+    desc: 'Gemini 1.5 Flash. Free via Google AI Studio — no credit card needed.',
+    storageKey: 'scooby_api_key_gemini',
+  },
+  anthropic: {
+    name: 'Anthropic Claude', icon: '🧠',
+    model: 'claude-haiku-4-5-20251001',
+    endpoint: 'https://api.anthropic.com/v1/messages',
+    format: 'anthropic',
+    defaultKey: '',
+    apiUrl: 'https://console.anthropic.com/settings/keys',
+    placeholder: 'sk-ant-…',
+    free: false,
+    desc: 'Claude Haiku — fast & capable. Requires a paid Anthropic account.',
+    storageKey: 'scooby_api_key_anthropic',
+  },
+  cohere: {
+    name: 'Cohere', icon: '🔗',
+    model: 'command-r-plus-08-2024',
+    endpoint: 'https://api.cohere.ai/v2/chat',
+    format: 'cohere',
+    defaultKey: '',
+    apiUrl: 'https://dashboard.cohere.com/api-keys',
+    placeholder: 'Paste your Cohere API key…',
+    free: true,
+    desc: 'Command R+. Free trial credits available. Great for long documents.',
+    storageKey: 'scooby_api_key_cohere',
+  },
+};
+
+/* ── CORS proxies ────────────────────────────────────────────────── */
+const PROXIES = [
+  u => `https://corsproxy.io/?url=${encodeURIComponent(u)}`,
+  u => `https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`,
+  u => `https://api.codetabs.com/v1/proxy/?quest=${encodeURIComponent(u)}`,
+  u => `https://corsproxy.org/?${encodeURIComponent(u)}`,
+  u => `https://thingproxy.freeboard.io/fetch/${u}`,
+];
+
+/* ── Invidious public instances (CORS-native) ────────────────────── */
+const INVIDIOUS = [
+  'https://inv.nadeko.net',
+  'https://invidious.io.lol',
+  'https://yt.artemislena.eu',
+  'https://iv.datura.network',
+  'https://invidious.privacydev.net',
+  'https://invidious.nerdvpn.de',
+];
+
+/* ── Piped public instances (CORS-native, different infra) ───────── */
+const PIPED = [
+  'https://pipedapi.kavin.rocks',
+  'https://piped-api.garudalinux.org',
+  'https://api.piped.projectsegfau.lt',
+  'https://pipedapi.reallyaweso.me',
+];
+
+/* ── State ───────────────────────────────────────────────────────── */
+const S = {
+  tab: 'tx', mode: 'detailed', lang: 'en',
+  provider: localStorage.getItem('scooby_active_provider') || 'mistral',
+  title: '', thumb: '',
+  summary: null, history: [], busy: false, isListening: false,
+};
+let ytPlayer = null;   // YouTube IFrame API player instance
+
+/* ── Mount IFrame API player ─────────────────────────────────────── */
+function mountYTPlayer(videoId) {
+  if (ytPlayer && ytPlayer.destroy) { try { ytPlayer.destroy(); } catch {} }
+  document.getElementById('yt-player-wrap').innerHTML = '<div id="_yt_div"></div>';
+
+  ytPlayer = new YT.Player('_yt_div', {
+    videoId,
+    width: '100%', height: '100%',
+    playerVars: {
+      rel:            0,
+      modestbranding: 1,
+      enablejsapi:    1,   // enable JS API access
+      cc_load_policy: 1,   // auto-show captions
+      cc_lang_pref:   'en',
+      controls:       1,
+      iv_load_policy: 3,   // no annotations
+    },
+    events: {
+      onReady: () => console.log('[Scooby] YT player ready, captions enabled'),
+      onError: (e) => console.warn('[Scooby] YT player error:', e.data),
+    }
+  });
+}
+
+function ensurePlayer(videoId) {
+  if (window._ytApiReady) {
+    mountYTPlayer(videoId);
+  } else {
+    /* API not yet loaded — queue mount for when it fires */
+    window._pendingMount = () => mountYTPlayer(videoId);
+    /* Fallback plain iframe after 6 s if API never loads */
+    setTimeout(() => {
+      if (!window._ytApiReady) {
+        document.getElementById('yt-player-wrap').innerHTML =
+          `<iframe src="https://www.youtube.com/embed/${videoId}?rel=0&enablejsapi=1&cc_load_policy=1&cc_lang_pref=en"
+             style="width:100%;height:100%;border:none" allowfullscreen></iframe>`;
+      }
+    }, 6000);
+  }
+}
+
+/* ── Tab / Mode ──────────────────────────────────────────────────── */
+function switchTab(id, btn) {
+  if (S.tab === 'mic' && micTabState.active) stopMicTab();
+  S.tab = id;
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  btn.classList.add('active');
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.getElementById('tab-' + id).classList.add('active');
+  refreshWC();
+}
+function selectMode(btn) {
+  document.querySelectorAll('.mode-pill:not(.lang-pill)').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  S.mode = btn.dataset.mode;
+}
+
+function selectLang(btn) {
+  document.querySelectorAll('.lang-pill:not([data-miclang])').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  S.lang = btn.dataset.lang;
+}
+
+function setMicLang(btn) {
+  document.querySelectorAll('[data-miclang]').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  const lang = btn.dataset.miclang;
+  document.getElementById('mic-lang').value = lang;
+  if (micTabState.active) { stopMicTab(); startMicTab(); }
+}
+
+
+/* ── YouTube load + auto-transcript ─────────────────────────────── */
+async function loadYT() {
+  const url = document.getElementById('yt-url').value.trim();
+  if (!url) { toast('Please enter a YouTube URL.', 'warn'); return; }
+
+  const vid = ytId(url);
+  if (!vid) { toast('Could not parse a video ID from that URL.', 'warn'); return; }
+
+  const loadBtn = document.getElementById('load-btn');
+  loadBtn.disabled = true;
+  if (S.isListening) stopListen();
+  document.getElementById('manual-guide').classList.remove('show');
+  document.getElementById('listen-section').classList.remove('show');
+  document.getElementById('tx-auto-badge').classList.remove('show');
+  setStatus('loading', 'Loading video info…');
+
+  /* 1 ── oEmbed: title + thumbnail */
+  try {
+    const oe = await timedFetch(
+      `https://www.youtube.com/oembed?url=${encodeURIComponent(url)}&format=json`, 8000
+    );
+    if (oe.ok) {
+      const d = await oe.json();
+      S.title = d.title || '';
+      S.thumb = d.thumbnail_url || '';
+      document.getElementById('vid-title').textContent = d.title || '';
+      document.getElementById('vid-sub').textContent   = d.author_name ? `by ${d.author_name}` : '';
+      document.getElementById('vid-thumb').src         = d.thumbnail_url || '';
+    }
+  } catch { /* non-fatal */ }
+
+  /* 2 ── Mount YouTube IFrame API player (enablejsapi + captions) */
+  setStatus('loading', 'Initialising player with captions enabled…');
+  document.getElementById('vid-preview').classList.add('show');
+  document.getElementById('listen-section').classList.add('show');
+  ensurePlayer(vid);
+
+  /* 3 ── Extract transcript via 4-method fallback chain */
+  setStatus('loading', 'Extracting caption transcript from video…');
+  try {
+    const tx = await fetchYTTranscript(vid);
+    document.getElementById('yt-ta').value = tx;
+    document.getElementById('tx-auto-badge').classList.add('show');
+    refreshWC();
+    setStatus('ok', `✅ Transcript ready — ${wordCount(tx).toLocaleString()} words extracted`);
+    toast('Transcript extracted! Auto-summarizing…', 'ok');
+    setTimeout(() => doSummarize(), 500);
+  } catch (e) {
+    console.warn('[Scooby] All transcript methods failed:', e.message);
+    setStatus('warn', '⚠️ Auto-extract failed — see guide below to copy transcript from YouTube');
+    showManualGuide();
+    toast('Auto-extract failed. Use the guide below to paste manually.', 'warn');
+  }
+
+  loadBtn.disabled = false;
+}
+
+/* ── Status helper ───────────────────────────────────────────────── */
+/* ══════════════════════════════════════════════════════
+   LISTEN & TRANSCRIBE  (Web Speech API)
+══════════════════════════════════════════════════════ */
+let recognition  = null;
+let finalText    = '';
+let interimText  = '';
+
+function toggleListen() {
+  S.isListening ? stopListen() : startListen();
+}
+
+function startListen() {
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SR) {
+    toast('Speech recognition not supported — use Chrome or Edge.', 'err');
+    return;
+  }
+
+  finalText   = document.getElementById('yt-ta').value.trim();
+  interimText = '';
+
+  recognition = new SR();
+  recognition.lang           = 'en-US';
+  recognition.continuous     = true;
+  recognition.interimResults = true;
+  recognition.maxAlternatives = 1;
+
+  recognition.onstart = () => {
+    S.isListening = true;
+    setListenUI(true);
+    toast('🎙 Listening… Play the video now!', 'ok');
+  };
+
+  recognition.onresult = (e) => {
+    interimText = '';
+    for (let i = e.resultIndex; i < e.results.length; i++) {
+      if (e.results[i].isFinal) {
+        finalText += e.results[i][0].transcript + ' ';
+      } else {
+        interimText += e.results[i][0].transcript;
+      }
+    }
+    updateLivePreview();
+  };
+
+  recognition.onerror = (e) => {
+    if (e.error === 'not-allowed' || e.error === 'service-not-allowed') {
+      toast('❌ Microphone access denied. Allow mic in browser settings.', 'err');
+      stopListen();
+    } else if (e.error !== 'no-speech') {
+      console.warn('[Scooby] Speech error:', e.error);
+    }
+  };
+
+  recognition.onend = () => {
+    /* Auto-restart so long transcripts aren't cut off */
+    if (S.isListening) {
+      try { recognition.start(); } catch { /* already started */ }
+    }
+  };
+
+  try { recognition.start(); }
+  catch { toast('Could not start microphone. Is another app using it?', 'err'); }
+}
+
+function stopListen() {
+  S.isListening = false;
+  if (recognition) { try { recognition.stop(); } catch {} recognition = null; }
+  interimText = '';
+
+  /* Push final text into transcript textarea */
+  const ta = document.getElementById('yt-ta');
+  ta.value = finalText.trim();
+  document.getElementById('tx-auto-badge').classList.remove('show');
+  refreshWC();
+  updateLivePreview();
+  setListenUI(false);
+
+  const wc = wordCount(finalText);
+  if (wc >= 30) {
+    setStatus('ok', `✅ Transcript captured — ${wc.toLocaleString()} words. Auto-summarizing…`);
+    toast(`✅ ${wc.toLocaleString()} words captured. Summarizing…`, 'ok');
+    setTimeout(() => doSummarize(), 600);
+  } else if (wc > 0) {
+    setStatus('warn', '⚠️ Short transcript captured — try speaking closer or increasing volume.');
+    toast('Transcript too short. Try again.', 'warn');
+  } else {
+    setStatus('warn', '⚠️ No speech detected. Make sure your microphone is working.');
+  }
+}
+
+function setListenUI(on) {
+  const btn = document.getElementById('listen-btn');
+  const dot = document.getElementById('mic-dot');
+  const sec = document.getElementById('listen-section');
+  const wds = document.getElementById('listen-words');
+  btn.textContent = on ? '⏹ Stop & Summarize' : '🎙 Start Listening';
+  btn.className   = on ? '' : 'off';
+  dot.className   = on ? 'mic-dot on' : 'mic-dot';
+  sec.classList.toggle('listening', on);
+  wds.style.display = on ? 'flex' : 'none';
+  document.getElementById('live-preview').classList.toggle('show', on);
+}
+
+function updateLivePreview() {
+  const preview = document.getElementById('live-preview');
+  const wc = wordCount(finalText);
+  document.getElementById('live-wc').textContent = wc.toLocaleString();
+  const show = (finalText + interimText).trim();
+  if (!show) { preview.innerHTML = '<em style="color:var(--txt3)">Waiting for audio…</em>'; return; }
+  /* Show last ~200 chars of final + interim */
+  const tail = finalText.length > 200 ? '…' + finalText.slice(-200) : finalText;
+  preview.innerHTML = esc(tail) + (interimText ? `<span class="interim"> ${esc(interimText)}</span>` : '');
+  preview.scrollTop = preview.scrollHeight;
+}
+
+function showManualGuide() {
+  document.getElementById('manual-guide').classList.add('show');
+}
+
+/* ══════════════════════════════════════════════════════
+   LIVE MIC TAB  — transcribe any audio via microphone
+══════════════════════════════════════════════════════ */
+const micTabState = { active: false, rec: null, finalText: '', interim: '', seconds: 0, timer: null };
+
+function toggleMicTab() {
+  micTabState.active ? stopMicTab() : startMicTab();
+}
+
+function startMicTab() {
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SR) {
+    toast('Speech recognition requires Chrome, Edge, or Safari.', 'err');
+    return;
+  }
+
+  micTabState.finalText = document.getElementById('mic-ta').value;
+  micTabState.interim   = '';
+
+  const r = new SR();
+  r.lang             = document.getElementById('mic-lang').value;
+  r.continuous       = true;
+  r.interimResults   = true;
+  r.maxAlternatives  = 1;
+  micTabState.rec    = r;
+
+  r.onstart = () => {
+    micTabState.active = true;
+    setMicTabUI(true);
+    if (!micTabState.timer) {
+      toast('🎤 Recording — speak now!', 'ok');
+      micTabState.timer = setInterval(() => {
+        micTabState.seconds++;
+        const m = Math.floor(micTabState.seconds / 60);
+        const s = String(micTabState.seconds % 60).padStart(2, '0');
+        document.getElementById('mic-time').textContent = `${m}:${s}`;
+      }, 1000);
+    }
+  };
+
+  r.onresult = (e) => {
+    micTabState.interim = '';
+    for (let i = e.resultIndex; i < e.results.length; i++) {
+      if (e.results[i].isFinal) {
+        micTabState.finalText += e.results[i][0].transcript + ' ';
+      } else {
+        micTabState.interim += e.results[i][0].transcript;
+      }
+    }
+    updateMicTA();
+  };
+
+  r.onerror = (ev) => {
+    if (ev.error === 'not-allowed' || ev.error === 'service-not-allowed') {
+      toast('❌ Microphone access denied — allow mic in your browser settings.', 'err');
+      stopMicTab();
+    } else if (ev.error !== 'no-speech') {
+      console.warn('[Scooby Mic]', ev.error);
+    }
+  };
+
+  r.onend = () => {
+    if (micTabState.active) {
+      try { r.start(); } catch {}
+    }
+  };
+
+  try { r.start(); }
+  catch { toast('Could not access microphone — is another app using it?', 'err'); }
+}
+
+function stopMicTab() {
+  micTabState.active = false;
+  clearInterval(micTabState.timer);
+  micTabState.timer = null;
+  if (micTabState.rec) { try { micTabState.rec.stop(); } catch {} micTabState.rec = null; }
+  micTabState.interim = '';
+  updateMicTA();
+  setMicTabUI(false);
+  const wc = wordCount(micTabState.finalText);
+  if (wc > 0) toast(`✅ ${wc.toLocaleString()} words captured.`, 'ok');
+}
+
+function clearMicTab() {
+  if (micTabState.active) stopMicTab();
+  micTabState.finalText = '';
+  micTabState.interim   = '';
+  micTabState.seconds   = 0;
+  document.getElementById('mic-ta').value   = '';
+  document.getElementById('mic-interim').textContent = '';
+  document.getElementById('mic-wc').textContent   = '0';
+  document.getElementById('mic-time').textContent = '0:00';
+  refreshWC();
+}
+
+function setMicTabUI(on) {
+  const btn   = document.getElementById('mic-rec-btn');
+  const label = document.getElementById('mic-rec-label');
+  btn.classList.toggle('active', on);
+  label.textContent = on ? 'Recording… tap to stop' : 'Tap to start recording';
+  label.classList.toggle('active', on);
+}
+
+function updateMicTA() {
+  document.getElementById('mic-ta').value = micTabState.finalText;
+  document.getElementById('mic-interim').textContent = micTabState.interim || '';
+  const wc = wordCount(micTabState.finalText);
+  document.getElementById('mic-wc').textContent = wc.toLocaleString();
+  refreshWC();
+  const ta = document.getElementById('mic-ta');
+  ta.scrollTop = ta.scrollHeight;
+}
+
+function setStatus(type, msg) {
+  const el   = document.getElementById('yt-status');
+  const icon = document.getElementById('yt-status-icon');
+  const txt  = document.getElementById('yt-status-txt');
+  el.className = `show s-${type}`;
+  txt.textContent = msg;
+  icon.innerHTML = type === 'loading'
+    ? '<span class="status-spin"></span>'
+    : { ok: '✅', warn: '⚠️', err: '❌' }[type] || '';
+}
+
+/* ══════════════════════════════════════════════════════
+   AUTO-TRANSCRIPT ENGINE  (5-method fallback chain)
+══════════════════════════════════════════════════════ */
+async function fetchYTTranscript(videoId) {
+
+  /* ── Method 0: Invidious API (CORS-native, no proxy needed) ───── */
+  try {
+    const text = await getTranscriptViaInvidious(videoId);
+    if (text) { console.log('[Scooby] ✅ Transcript via Invidious API'); return text; }
+  } catch (e) { console.debug('[Scooby] Invidious failed:', e.message); }
+
+  /* ── Method 0.5: Piped API (CORS-native, different infra) ───────── */
+  try {
+    const text = await getTranscriptViaPiped(videoId);
+    if (text) { console.log('[Scooby] ✅ Transcript via Piped API'); return text; }
+  } catch (e) { console.debug('[Scooby] Piped failed:', e.message); }
+
+  /* ── Method 1: YouTube youtubei/v1/player POST API ────────────── */
+  try {
+    const tracks = await getTracksViaYoutubeiAPI(videoId);
+    if (tracks?.length) {
+      const text = await fetchCaptionTrack(tracks);
+      if (text) { console.log('[Scooby] ✅ Transcript via youtubei API'); return text; }
+    }
+  } catch (e) { console.debug('[Scooby] youtubei failed:', e.message); }
+
+  /* ── Method 2: Scrape ytInitialPlayerResponse from watch page ─── */
+  try {
+    const tracks = await getTracksViaPageScrape(videoId);
+    if (tracks?.length) {
+      const text = await fetchCaptionTrack(tracks);
+      if (text) { console.log('[Scooby] ✅ Transcript via page scrape'); return text; }
+    }
+  } catch (e) { console.debug('[Scooby] Page scrape failed:', e.message); }
+
+  /* ── Method 3: Direct timedtext endpoint (no proxy) ──────────── */
+  try {
+    const text = await fetchDirectTimedtext(videoId);
+    if (text) { console.log('[Scooby] ✅ Transcript via direct timedtext'); return text; }
+  } catch (e) { console.debug('[Scooby] Direct timedtext failed:', e.message); }
+
+  /* ── Method 4: timedtext via proxy ───────────────────────────── */
+  try {
+    const text = await fetchProxiedTimedtext(videoId);
+    if (text) { console.log('[Scooby] ✅ Transcript via proxied timedtext'); return text; }
+  } catch (e) { console.debug('[Scooby] Proxied timedtext failed:', e.message); }
+
+  throw new Error('All transcript extraction methods exhausted');
+}
+
+/* ── Method 0: Invidious API ─────────────────────────────────────── */
+async function getTranscriptViaInvidious(videoId) {
+  for (const host of INVIDIOUS) {
+    try {
+      /* Step 1 — get caption track list */
+      const r = await timedFetch(`${host}/api/v1/captions/${videoId}`, 8000);
+      if (!r.ok) continue;
+      const data = await r.json();
+      const captions = data?.captions;
+      if (!captions?.length) continue;
+
+      /* Prefer manual English, then ASR English, then any */
+      const cap =
+        captions.find(c => c.language_code === 'en' && !c.label.toLowerCase().includes('auto')) ||
+        captions.find(c => c.language_code === 'en') ||
+        captions.find(c => c.label.toLowerCase().includes('english')) ||
+        captions[0];
+
+      /* Step 2 — fetch the VTT content */
+      const capUrl = cap.url.startsWith('http') ? cap.url : `${host}${cap.url}`;
+      const cr = await timedFetch(capUrl, 8000);
+      if (!cr.ok) continue;
+
+      const raw = await cr.text();
+      const text = raw.includes('WEBVTT') ? parseVTT(raw)
+                 : raw.includes('<text')   ? parseXmlCaptions(raw)
+                 : raw.replace(/<[^>]+>/g,'').replace(/\s+/g,' ').trim();
+
+      if (text && text.length > 50) {
+        console.log(`[Scooby] Invidious instance: ${host}`);
+        return text;
+      }
+    } catch (e) { console.debug(`[Scooby] Invidious ${host}:`, e.message); }
+  }
+  throw new Error('Invidious: all instances failed or no captions');
+}
+
+/* Parse WebVTT → plain text */
+function parseVTT(vtt) {
+  const lines = vtt.split('\n');
+  const out = [];
+  let capture = false;
+  for (const line of lines) {
+    const t = line.trim();
+    if (!t || t === 'WEBVTT' || /^NOTE/.test(t)) { capture = false; continue; }
+    if (t.includes('-->'))  { capture = true; continue; }
+    if (/^\d+$/.test(t))   { capture = false; continue; }
+    if (capture && t) out.push(t.replace(/<[^>]+>/g, '').replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>'));
+  }
+  return [...new Set(out)].join(' ').replace(/\s+/g,' ').trim();
+}
+
+/* Method 0.5 — Piped API (CORS-native, separate infrastructure from Invidious) */
+async function getTranscriptViaPiped(videoId) {
+  for (const host of PIPED) {
+    try {
+      const r = await timedFetch(`${host}/captions/${videoId}`, 8000);
+      if (!r.ok) continue;
+      const data = await r.json();
+      const captions = data?.captions;
+      if (!captions?.length) continue;
+
+      const cap =
+        captions.find(c => c.code === 'en' && !c.autoGenerated) ||
+        captions.find(c => c.code === 'en') ||
+        captions.find(c => c.name?.toLowerCase().includes('english')) ||
+        captions[0];
+
+      const cr = await timedFetch(cap.url, 8000);
+      if (!cr.ok) continue;
+      const raw = await cr.text();
+      const text = raw.includes('WEBVTT') ? parseVTT(raw)
+                 : raw.includes('<text')   ? parseXmlCaptions(raw)
+                 : raw.replace(/<[^>]+>/g,'').replace(/\s+/g,' ').trim();
+      if (text && text.length > 50) {
+        console.log(`[Scooby] Piped instance: ${host}`);
+        return text;
+      }
+    } catch (e) { console.debug(`[Scooby] Piped ${host}:`, e.message); }
+  }
+  throw new Error('Piped: all instances failed');
+}
+
+/* Method 1 — POST to YouTube's internal player API */
+async function getTracksViaYoutubeiAPI(videoId) {
+  const target = 'https://www.youtube.com/youtubei/v1/player?prettyPrint=false';
+  const body = JSON.stringify({
+    videoId,
+    context: {
+      client: {
+        clientName: 'WEB', clientVersion: '2.20240726.00.00',
+        hl: 'en', gl: 'US', utcOffsetMinutes: 0,
+      }
+    }
+  });
+  for (const px of PROXIES) {
+    try {
+      const r = await timedFetch(px(target), 12000, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body,
+      });
+      if (!r.ok) continue;
+      const data = await r.json();
+      const tracks = data?.captions?.playerCaptionsTracklistRenderer?.captionTracks;
+      if (tracks?.length) return tracks;
+    } catch { /* next proxy */ }
+  }
+  throw new Error('youtubei: no tracks');
+}
+
+/* Method 2 — Fetch watch page HTML and parse ytInitialPlayerResponse */
+async function getTracksViaPageScrape(videoId) {
+  const ytUrl = `https://www.youtube.com/watch?v=${videoId}`;
+  let html = null;
+  for (const px of PROXIES) {
+    try {
+      const r = await timedFetch(px(ytUrl), 14000);
+      if (!r.ok) continue;
+      const txt = await r.text();
+      if (txt.length > 5000 && txt.includes('ytInitialPlayerResponse')) { html = txt; break; }
+    } catch { /* next */ }
+  }
+  if (!html) throw new Error('page scrape: page unavailable');
+
+  let playerData = null;
+  for (const key of ['ytInitialPlayerResponse = ', 'ytInitialPlayerResponse=']) {
+    const si = html.indexOf(key);
+    if (si !== -1) {
+      try { playerData = JSON.parse(extractJson(html, si + key.length)); break; }
+      catch { /* next key */ }
+    }
+  }
+  if (!playerData) throw new Error('page scrape: JSON parse failed');
+  const tracks = playerData?.captions?.playerCaptionsTracklistRenderer?.captionTracks;
+  if (!tracks?.length) throw new Error('page scrape: no caption tracks');
+  return tracks;
+}
+
+/* Fetch caption content from a tracks array — tries json3 then srv3 (XML) */
+async function fetchCaptionTrack(tracks) {
+  const track =
+    tracks.find(t => t.languageCode === 'en' && !t.kind) ||  // manual English
+    tracks.find(t => t.languageCode === 'en')              ||  // any English
+    tracks.find(t => t.kind === 'asr')                     ||  // auto-generated
+    tracks[0];
+
+  for (const fmt of ['json3', 'srv3']) {
+    const url = track.baseUrl + `&fmt=${fmt}`;
+    for (const px of PROXIES) {
+      try {
+        const r = await timedFetch(px(url), 10000);
+        if (!r.ok) continue;
+        if (fmt === 'json3') {
+          const text = parseJson3(await r.json());
+          if (text) return text;
+        } else {
+          const text = parseXmlCaptions(await r.text());
+          if (text) return text;
+        }
+      } catch { /* next */ }
+    }
+  }
+  throw new Error('caption track: all formats failed');
+}
+
+/* Method 3 — Direct timedtext, no proxy */
+async function fetchDirectTimedtext(videoId) {
+  for (const lang of ['en', 'en-US', 'en-GB', 'a.en']) {
+    try {
+      const r = await timedFetch(
+        `https://www.youtube.com/api/timedtext?v=${videoId}&lang=${lang}&fmt=json3`, 7000
+      );
+      if (r.ok) {
+        const text = parseJson3(await r.json());
+        if (text) return text;
+      }
+    } catch { /* next lang */ }
+  }
+  throw new Error('direct timedtext: all langs failed');
+}
+
+/* Method 4 — timedtext via proxy */
+async function fetchProxiedTimedtext(videoId) {
+  for (const lang of ['en', 'a.en']) {
+    const ttUrl = `https://www.youtube.com/api/timedtext?v=${videoId}&lang=${lang}&fmt=json3`;
+    for (const px of PROXIES) {
+      try {
+        const r = await timedFetch(px(ttUrl), 10000);
+        if (r.ok) {
+          const text = parseJson3(await r.json());
+          if (text) return text;
+        }
+      } catch { /* next */ }
+    }
+  }
+  throw new Error('proxied timedtext: failed');
+}
+
+/* Parse json3 caption events → plain text */
+function parseJson3(data) {
+  if (!data?.events?.length) return null;
+  const t = data.events
+    .filter(e => e.segs)
+    .map(e => e.segs.map(s => s.utf8 || '').join(''))
+    .join(' ').replace(/\n/g, ' ').replace(/\s+/g, ' ').trim();
+  return t || null;
+}
+
+/* Parse srv3 / srv1 XML captions → plain text */
+function parseXmlCaptions(xml) {
+  const parts = [];
+  const re = /<text[^>]*>([\s\S]*?)<\/text>/g;
+  let m;
+  while ((m = re.exec(xml)) !== null) {
+    parts.push(
+      m[1].replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&#39;/g,"'").replace(/&quot;/g,'"')
+    );
+  }
+  return parts.join(' ').replace(/\s+/g,' ').trim() || null;
+}
+
+/* Balanced-brace JSON extractor */
+function extractJson(html, start) {
+  let depth = 0, i = start, inStr = false, esc = false;
+  for (; i < html.length; i++) {
+    const c = html[i];
+    if (esc)                    { esc = false; continue; }
+    if (c === '\\' && inStr)    { esc = true;  continue; }
+    if (c === '"')               { inStr = !inStr; continue; }
+    if (inStr)                   continue;
+    if (c === '{')               depth++;
+    else if (c === '}' && --depth === 0) return html.slice(start, i + 1);
+  }
+  throw new Error('Unbalanced JSON braces');
+}
+
+/* Fetch with timeout — accepts optional fetch init (method, headers, body) */
+async function timedFetch(url, ms, init = {}) {
+  const ctrl = new AbortController();
+  const t = setTimeout(() => ctrl.abort(), ms);
+  try { return await fetch(url, { ...init, signal: ctrl.signal }); }
+  finally { clearTimeout(t); }
+}
+
+/* ── Extract YouTube video ID ────────────────────────────────────── */
+function ytId(url) {
+  for (const re of [/[?&]v=([^&#]+)/, /youtu\.be\/([^?#]+)/, /embed\/([^?#]+)/]) {
+    const m = url.match(re); if (m) return m[1];
+  }
+  return null;
+}
+
+/* ── File handling ───────────────────────────────────────────────── */
+function onFileSelect(e) { if (e.target.files[0]) readTxt(e.target.files[0]); }
+function onDrop(e) {
+  e.preventDefault();
+  document.getElementById('drop-zone').classList.remove('over');
+  const f = e.dataTransfer.files[0];
+  if (f?.name.endsWith('.txt')) readTxt(f);
+  else toast('Only .txt files are supported.', 'warn');
+}
+function onDragOver(e) { e.preventDefault(); document.getElementById('drop-zone').classList.add('over'); }
+function onDragLeave() { document.getElementById('drop-zone').classList.remove('over'); }
+function readTxt(f) {
+  const r = new FileReader();
+  r.onload = ev => {
+    document.getElementById('fi-ta').value = ev.target.result;
+    const b = document.getElementById('file-badge');
+    b.textContent = `📄 ${f.name}  (${(f.size/1024).toFixed(1)} KB)`;
+    b.classList.add('show');
+    refreshWC();
+    toast(`Loaded: ${f.name}`, 'ok');
+  };
+  r.readAsText(f);
+}
+
+/* ── Word count ──────────────────────────────────────────────────── */
+function getTranscript() {
+  if (S.tab === 'tx')  return document.getElementById('tx-ta').value.trim();
+  if (S.tab === 'mic') return document.getElementById('mic-ta').value.trim();
+  return document.getElementById('fi-ta').value.trim();
+}
+function wordCount(s) { return s ? s.trim().split(/\s+/).filter(Boolean).length : 0; }
+function refreshWC() {
+  const n = wordCount(getTranscript());
+  document.getElementById('wc-display').innerHTML =
+    n ? `Word count: <span>${n.toLocaleString()}</span>` : 'Word count: <span>—</span>';
+}
+['tx-ta','fi-ta','mic-ta'].forEach(id =>
+  document.getElementById(id).addEventListener('input', refreshWC)
+);
+
+/* ══════════════════════════════════════════════════════
+   SUMMARIZE
+══════════════════════════════════════════════════════ */
+async function doSummarize() {
+  if (S.busy) return;
+
+  const tx = getTranscript();
+  if (!tx) { toast('Please provide a transcript first.', 'warn'); return; }
+
+  const wc = wordCount(tx);
+  if (wc < 30) toast('⚠️ Very short transcript — results may be limited.', 'warn');
+
+  S.busy = true;
+  document.getElementById('sum-btn').disabled = true;
+  document.getElementById('results').classList.remove('show');
+  document.getElementById('loading').classList.add('show');
+  startLoadLoop();
+
+  try {
+    const data = await callAPI(tx, S.mode);
+    S.summary = data;
+    renderResults(data, wc);
+    pushHistory(data);
+    document.getElementById('loading').classList.remove('show');
+    document.getElementById('results').classList.add('show');
+    setTimeout(() =>
+      document.getElementById('results').scrollIntoView({ behavior:'smooth', block:'start' }), 80
+    );
+  } catch (e) {
+    document.getElementById('loading').classList.remove('show');
+    console.error(e);
+    toast('❌ ' + (e.message || 'Summarization failed. Check the API key or try again.'), 'err');
+  } finally {
+    S.busy = false;
+    document.getElementById('sum-btn').disabled = false;
+    stopLoadLoop();
+  }
+}
+
+/* ── Loading message loop ────────────────────────────────────────── */
+const LOAD_MSGS = [
+  'Analyzing transcript','Identifying key themes',
+  'Extracting key points','Building chapter breakdown',
+  'Crafting your summary','Finalizing output',
+];
+let _lt = null, _li = 0;
+function startLoadLoop() {
+  _li = 0;
+  _lt = setInterval(() => {
+    _li = (_li + 1) % LOAD_MSGS.length;
+    document.getElementById('load-msg').innerHTML =
+      `${LOAD_MSGS[_li]}<span class="dots"><span>.</span><span>.</span><span>.</span></span>`;
+  }, 2000);
+}
+function stopLoadLoop() { clearInterval(_lt); }
+
+/* ── API helpers ─────────────────────────────────────────────────── */
+function parseAPIText(raw) {
+  raw = raw.trim().replace(/^```(?:json)?\s*/i,'').replace(/\s*```$/,'').trim();
+  const m = raw.match(/\{[\s\S]*\}/);
+  if (m) raw = m[0];
+  return JSON.parse(raw);
+}
+
+async function callAPI(transcript, mode) {
+  const prov = PROVIDERS[S.provider] || PROVIDERS.mistral;
+  const key  = getApiKey();
+  const userMsg = `Video title (if known): ${S.title || 'Unknown'}\n\nTranscript:\n${transcript}`;
+
+  /* ── Gemini format ── */
+  if (prov.format === 'gemini') {
+    const url  = `${prov.endpoint}?key=${encodeURIComponent(key)}`;
+    const body = JSON.stringify({
+      contents: [{ role: 'user', parts: [{ text: sysPrompt(mode) + '\n\n' + userMsg }] }],
+      generationConfig: { maxOutputTokens: 4096 },
+    });
+    const resp = await fetch(url, { method: 'POST', headers: { 'content-type': 'application/json' }, body });
+    if (!resp.ok) {
+      const e = await resp.json().catch(() => ({}));
+      if (resp.status === 401 || resp.status === 400) throw new Error('Invalid Gemini API key — open ⚙ Settings to update it.');
+      throw new Error(e.error?.message || `HTTP ${resp.status}`);
+    }
+    const result = await resp.json();
+    return parseAPIText(result.candidates[0].content.parts[0].text);
+  }
+
+  /* ── Anthropic format ── */
+  if (prov.format === 'anthropic') {
+    const body = JSON.stringify({
+      model: prov.model, max_tokens: 4096,
+      system: sysPrompt(mode),
+      messages: [{ role: 'user', content: userMsg }],
+    });
+    const resp = await fetch(prov.endpoint, {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        'x-api-key': key,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-allow-browser': 'true',
+      },
+      body,
+    });
+    if (!resp.ok) {
+      const e = await resp.json().catch(() => ({}));
+      if (resp.status === 401) throw new Error('Invalid Anthropic API key — open ⚙ Settings to update it.');
+      throw new Error(e.error?.message || `HTTP ${resp.status}`);
+    }
+    const result = await resp.json();
+    return parseAPIText(result.content[0].text);
+  }
+
+  /* ── Cohere format ── */
+  if (prov.format === 'cohere') {
+    const body = JSON.stringify({
+      model: prov.model,
+      messages: [
+        { role: 'system', content: sysPrompt(mode) },
+        { role: 'user',   content: userMsg },
+      ],
+    });
+    const resp = await fetch(prov.endpoint, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', 'Authorization': `Bearer ${key}` },
+      body,
+    });
+    if (!resp.ok) {
+      const e = await resp.json().catch(() => ({}));
+      if (resp.status === 401) throw new Error('Invalid Cohere API key — open ⚙ Settings to update it.');
+      throw new Error(e.message || `HTTP ${resp.status}`);
+    }
+    const result = await resp.json();
+    return parseAPIText(result.message?.content[0]?.text || result.text || '');
+  }
+
+  /* ── OpenAI-compatible (Mistral, OpenAI, Groq) ── */
+  const body = JSON.stringify({
+    model: prov.model, max_tokens: 4096,
+    messages: [
+      { role: 'system', content: sysPrompt(mode) },
+      { role: 'user',   content: userMsg },
+    ],
+  });
+
+  const MAX_TRIES = 4;
+  let delay = 2000;
+
+  for (let attempt = 1; attempt <= MAX_TRIES; attempt++) {
+    let resp;
+    try {
+      const ctrl    = new AbortController();
+      const timeout = setTimeout(() => ctrl.abort(), 30000);
+      resp = await fetch(prov.endpoint, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json', 'Authorization': `Bearer ${key}` },
+        body, signal: ctrl.signal,
+      });
+      clearTimeout(timeout);
+    } catch (e) {
+      if (e.name === 'AbortError') throw new Error('Request timed out — check your internet and try again.');
+      if (attempt === MAX_TRIES) throw new Error('Network error — check your internet connection.');
+      await new Promise(r => setTimeout(r, delay)); delay *= 2; continue;
+    }
+
+    if (resp.status === 429) {
+      const e = await resp.json().catch(() => ({}));
+      const code = e.error?.code || e.error?.type || '';
+      if (code === 'insufficient_quota' || code === 'billing_hard_limit_reached')
+        throw new Error('This account has no remaining credits. Add billing or switch provider in ⚙ Settings.');
+      if (attempt === MAX_TRIES) throw new Error('Rate limited — please wait 1–2 minutes then try again.');
+      const retryAfterSec = parseInt(resp.headers.get('retry-after') || '60', 10);
+      let remaining = retryAfterSec;
+      const el = document.getElementById('load-msg');
+      const tick = setInterval(() => {
+        remaining--;
+        if (el) el.innerHTML = `Rate limited — retrying in <strong>${remaining}s</strong> (attempt ${attempt}/${MAX_TRIES})<span class="dots"><span>.</span><span>.</span><span>.</span></span>`;
+      }, 1000);
+      await new Promise(r => setTimeout(r, retryAfterSec * 1000));
+      clearInterval(tick); continue;
+    }
+
+    if (!resp.ok) {
+      const raw = await resp.text().catch(() => '');
+      let msg = `HTTP ${resp.status}`;
+      try { const e = JSON.parse(raw); msg = e.error?.message || e.error?.type || e.message || e.detail || msg; } catch { msg = raw || msg; }
+      if (resp.status === 401) throw new Error('Invalid API key — open ⚙ Settings to update it.');
+      throw new Error(msg);
+    }
+
+    const result = await resp.json();
+    return parseAPIText(result.choices[0].message.content);
+  }
+}
+
+/* ── System prompts ──────────────────────────────────────────────── */
+function sysPrompt(mode) {
+  const hindi = S.lang === 'hi';
+  const langNote = hindi
+    ? ' IMPORTANT: Write ALL text values in Hindi (Devanagari script). Only JSON keys stay in English.'
+    : '';
+
+  if (mode === 'quick') return `You are an expert video content analyst.${langNote} Return ONLY valid JSON, no markdown:
+{"title":"...","oneLiner":"...","tldr":"...","keyPoints":["..."],"topics":["..."],"sentiment":"Positive|Neutral|Mixed|Critical","estimatedReadTime":"X min read"}`;
+
+  if (mode === 'executive') return `You are an expert video content analyst.${langNote} Return ONLY valid JSON, no markdown:
+{"title":"...","oneLiner":"...","tldr":"...","actionItems":["..."],"sentiment":"Positive|Neutral|Mixed|Critical","targetAudience":"...","topics":["..."],"estimatedReadTime":"X min read"}`;
+
+  return `You are an expert video content analyst.${langNote} Return ONLY valid JSON, no markdown:
+{
+  "title": "video title",
+  "oneLiner": "one sentence core message",
+  "tldr": "2-3 sentence executive summary",
+  "keyPoints": ["point 1","point 2","point 3","point 4","point 5","point 6"],
+  "sections": [{"heading":"section name","summary":"2-3 sentence description"}],
+  "actionItems": ["actionable takeaway 1","actionable takeaway 2","actionable takeaway 3"],
+  "quotes": ["notable verbatim quote 1","notable verbatim quote 2"],
+  "sentiment": "Positive | Neutral | Mixed | Critical",
+  "topics": ["tag1","tag2","tag3","tag4"],
+  "targetAudience": "who this is best suited for",
+  "estimatedReadTime": "X min read"
+}`;
+}
+
+/* ══════════════════════════════════════════════════════
+   RENDER RESULTS
+══════════════════════════════════════════════════════ */
+function renderResults(d, origWC) {
+  const out = document.getElementById('out');
+  out.innerHTML = '';
+
+  const sumText = buildPlainText(d);
+  const sumWC   = wordCount(sumText);
+  const pct     = origWC > 0 ? Math.max(0, Math.round((1 - sumWC / origWC) * 100)) : 0;
+
+  document.getElementById('stats-row').innerHTML = [
+    [origWC > 0 ? origWC.toLocaleString() : '—', 'Original Words'],
+    [sumWC.toLocaleString(),                       'Summary Words'],
+    [origWC > 0 ? pct + '%' : '—',                'Compressed'],
+    [d.estimatedReadTime || '—',                   'Read Time'],
+  ].map((x,i) => `
+    <div class="stat ani" style="animation-delay:${i*.06}s">
+      <div class="stat-val">${x[0]}</div>
+      <div class="stat-lbl">${x[1]}</div>
+    </div>`).join('');
+
+  let delay = 0;
+
+  /* Hero */
+  const sentCls = {'Positive':'t-positive','Neutral':'t-neutral','Mixed':'t-mixed','Critical':'t-critical'}[d.sentiment]||'t-neutral';
+  const sentIco = {'Positive':'😊','Neutral':'😐','Mixed':'🤔','Critical':'⚠️'}[d.sentiment]||'😐';
+  const topics  = (d.topics||[]).map(t=>`<span class="tag t-topic">${esc(t)}</span>`).join('');
+
+  const heroCard = mk('div','card res-hero ani');
+  heroCard.style.animationDelay = `${(delay+=.05)}s`;
+  heroCard.innerHTML = `
+    <div class="res-hero-body">
+      ${S.thumb?`<img class="res-thumb" src="${esc(S.thumb)}" alt="" onerror="this.style.display='none'" />`:''}
+      <div class="res-meta">
+        <div class="res-title">${esc(d.title||S.title||'Summary')}</div>
+        ${d.oneLiner?`<div class="res-oneliner">${esc(d.oneLiner)}</div>`:''}
+        <div class="res-tags">
+          ${d.sentiment?`<span class="tag ${sentCls}">${sentIco} ${esc(d.sentiment)}</span>`:''}
+          ${d.estimatedReadTime?`<span class="tag t-meta">⏱ ${esc(d.estimatedReadTime)}</span>`:''}
+          ${topics}
+        </div>
+      </div>
+    </div>`;
+  out.appendChild(heroCard);
+
+  /* TL;DR */
+  if (d.tldr) {
+    const c = card('📋 TL;DR', delay+=.07);
+    c.innerHTML += `<div class="tldr-box"><div class="tldr-lbl">Executive Summary</div><div class="tldr-txt">${esc(d.tldr)}</div></div>`;
+    out.appendChild(c);
+  }
+
+  /* Key Points */
+  if (d.keyPoints?.length) {
+    const c = card('💡 Key Points', delay+=.07);
+    c.innerHTML += `<ul class="kp-list">${d.keyPoints.map((p,i)=>`
+      <li class="kp-item" style="animation-delay:${i*.06}s">
+        <div class="kp-num">${i+1}</div>
+        <div class="kp-txt">${esc(p)}</div>
+      </li>`).join('')}</ul>`;
+    out.appendChild(c);
+  }
+
+  /* Sections */
+  if (d.sections?.length) {
+    const c = card('📑 Chapter Breakdown', delay+=.07);
+    c.innerHTML += d.sections.map((s,i)=>`
+      <div class="acc-item">
+        <button class="acc-btn${i===0?' open':''}" onclick="toggleAcc(this)">
+          <span>📖 ${esc(s.heading)}</span><span class="acc-arr">▼</span>
+        </button>
+        <div class="acc-body${i===0?' open':''}">${esc(s.summary)}</div>
+      </div>`).join('');
+    out.appendChild(c);
+  }
+
+  /* Action Items */
+  if (d.actionItems?.length) {
+    const c = card('✅ Action Items', delay+=.07);
+    c.innerHTML += d.actionItems.map(a=>`
+      <div class="ai-item">
+        <div class="ai-cb" onclick="this.classList.toggle('on')"></div>
+        <div class="ai-txt">${esc(a)}</div>
+      </div>`).join('');
+    out.appendChild(c);
+  }
+
+  /* Quotes */
+  if (d.quotes?.length) {
+    const c = card('💬 Notable Quotes', delay+=.07);
+    c.innerHTML += d.quotes.map(q=>`
+      <blockquote class="quote-item"><p>${esc(q)}</p></blockquote>`).join('');
+    out.appendChild(c);
+  }
+
+  /* Target Audience */
+  if (d.targetAudience) {
+    const c = card('🎯 Target Audience', delay+=.07);
+    c.innerHTML += `<span class="aud-badge">👥 ${esc(d.targetAudience)}</span>`;
+    out.appendChild(c);
+  }
+}
+
+function mk(tag, cls) { const e = document.createElement(tag); e.className = cls; return e; }
+function card(title, delay) {
+  const c = mk('div','card ani');
+  c.style.animationDelay = `${delay}s`;
+  c.innerHTML = `<div class="card-title">${title}</div>`;
+  return c;
+}
+function toggleAcc(btn) {
+  btn.classList.toggle('open');
+  btn.nextElementSibling.classList.toggle('open');
+}
+
+/* ── Plain text export ───────────────────────────────────────────── */
+function buildPlainText(d) {
+  if (!d) return '';
+  const L = ['VIDEO SUMMARY', '='.repeat(60), ''];
+  const a = (k,v) => v && L.push(`${k}: ${v}`);
+  a('Title', d.title); a('One-liner', d.oneLiner);
+  a('Sentiment', d.sentiment); a('Read time', d.estimatedReadTime);
+  if (d.topics?.length) L.push(`Topics: ${d.topics.join(', ')}`);
+  L.push('');
+  if (d.tldr) L.push('TL;DR', '-'.repeat(40), d.tldr, '');
+  if (d.keyPoints?.length) {
+    L.push('KEY POINTS', '-'.repeat(40));
+    d.keyPoints.forEach((p,i) => L.push(`${i+1}. ${p}`));
+    L.push('');
+  }
+  if (d.sections?.length) {
+    L.push('CHAPTER BREAKDOWN', '-'.repeat(40));
+    d.sections.forEach(s => L.push(`${s.heading}:`, s.summary, ''));
+  }
+  if (d.actionItems?.length) {
+    L.push('ACTION ITEMS', '-'.repeat(40));
+    d.actionItems.forEach(a => L.push(`☐ ${a}`));
+    L.push('');
+  }
+  if (d.quotes?.length) {
+    L.push('NOTABLE QUOTES', '-'.repeat(40));
+    d.quotes.forEach(q => L.push(`"${q}"`));
+    L.push('');
+  }
+  if (d.targetAudience) L.push(`Target Audience: ${d.targetAudience}`);
+  return L.join('\n');
+}
+
+/* ── Export actions ──────────────────────────────────────────────── */
+function doCopy() {
+  const t = buildPlainText(S.summary);
+  if (!t) { toast('No summary yet.', 'warn'); return; }
+  navigator.clipboard.writeText(t)
+    .then(() => toast('✅ Copied to clipboard!', 'ok'))
+    .catch(() => { fallbackCopy(t); toast('✅ Copied!', 'ok'); });
+}
+function fallbackCopy(s) {
+  const ta = Object.assign(document.createElement('textarea'),
+    {value:s, style:'position:fixed;opacity:0'});
+  document.body.appendChild(ta); ta.select(); document.execCommand('copy'); ta.remove();
+}
+function doDownload() {
+  const t = buildPlainText(S.summary);
+  if (!t) { toast('No summary yet.', 'warn'); return; }
+  const a = Object.assign(document.createElement('a'), {
+    href: URL.createObjectURL(new Blob([t],{type:'text/plain'})),
+    download: `scooby-summary-${Date.now()}.txt`
+  });
+  a.click(); URL.revokeObjectURL(a.href);
+  toast('📄 Downloaded!', 'ok');
+}
+function doEmail() {
+  const t = buildPlainText(S.summary);
+  if (!t) { toast('No summary yet.', 'warn'); return; }
+  window.location.href =
+    `mailto:?subject=${encodeURIComponent('Video Summary: '+(S.summary?.title||'Summary'))}&body=${encodeURIComponent(t)}`;
+}
+
+/* ── History ─────────────────────────────────────────────────────── */
+function pushHistory(d) {
+  S.history.unshift({ title:d.title||'Untitled', mode:S.mode, ts:new Date(), data:d, thumb:S.thumb });
+  if (S.history.length > 5) S.history.pop();
+  renderHistory();
+}
+function renderHistory() {
+  const el = document.getElementById('hist-list');
+  if (!S.history.length) {
+    el.innerHTML = '<div class="hist-empty">No summaries yet.<br>Summarize a video to see it here.</div>';
+    return;
+  }
+  el.innerHTML = S.history.map((h,i) => `
+    <div class="hist-item" onclick="loadHistItem(${i})">
+      <div class="hi-title">${esc(h.title)}</div>
+      <div class="hi-meta">
+        <span>${modeLabel(h.mode)}</span>
+        <span>${relTime(h.ts)}</span>
+      </div>
+    </div>`).join('');
+}
+function loadHistItem(i) {
+  const h = S.history[i]; if (!h) return;
+  S.summary = h.data; S.thumb = h.thumb||''; S.title = h.title;
+  document.getElementById('stats-row').innerHTML = '';
+  renderResults(h.data, 0);
+  document.getElementById('results').classList.add('show');
+  setTimeout(() => document.getElementById('results').scrollIntoView({behavior:'smooth',block:'start'}), 80);
+  closeHistory();
+  toast(`Loaded: ${h.title}`, 'ok');
+}
+function modeLabel(m) {
+  return {'detailed':'📋 Detailed','quick':'⚡ Quick','executive':'🎯 Executive'}[m]||m;
+}
+function relTime(d) {
+  const s = (Date.now()-d)/1000;
+  if (s<60) return 'just now';
+  if (s<3600) return `${Math.floor(s/60)}m ago`;
+  return d.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
+}
+function openHistory()  { renderHistory(); document.getElementById('hist-overlay').classList.add('show'); document.getElementById('hist-panel').classList.add('show'); }
+function closeHistory() { document.getElementById('hist-overlay').classList.remove('show'); document.getElementById('hist-panel').classList.remove('show'); }
+
+/* ── Reset ───────────────────────────────────────────────────────── */
+function resetApp() {
+  document.getElementById('results').classList.remove('show');
+  S.summary = null;
+  document.getElementById('input-card').scrollIntoView({behavior:'smooth',block:'start'});
+}
+
+/* ── Toast ───────────────────────────────────────────────────────── */
+function toast(msg, type='ok') {
+  const w = document.getElementById('toast-wrap');
+  const d = document.createElement('div');
+  d.className = `toast ${type}`;
+  d.innerHTML = `<span>${{ok:'✅',err:'❌',warn:'⚠️'}[type]||''}</span><span>${msg}</span>`;
+  w.appendChild(d);
+  setTimeout(() => {
+    d.style.transition = 'all .3s';
+    d.style.opacity = '0';
+    d.style.transform = 'translateX(16px)';
+    setTimeout(() => d.remove(), 300);
+  }, 3600);
+}
+
+/* ── HTML escape ─────────────────────────────────────────────────── */
+function esc(s) {
+  return String(s||'')
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+/* ══════════════════════════════════════════════════════
+   SETTINGS & API KEY MANAGEMENT
+══════════════════════════════════════════════════════ */
+function getApiKey() {
+  const prov = PROVIDERS[S.provider] || PROVIDERS.mistral;
+  return localStorage.getItem(prov.storageKey) || prov.defaultKey || '';
+}
+
+function openChromeModal()  { document.getElementById('chrome-overlay').classList.add('show'); }
+function closeChromeModal() { document.getElementById('chrome-overlay').classList.remove('show'); }
+
+/* ── Settings panel ── */
+function openSettings() {
+  renderProviderCards();
+  document.getElementById('settings-overlay').classList.add('show');
+  document.getElementById('settings-panel').classList.add('show');
+}
+function closeSettings() {
+  document.getElementById('settings-overlay').classList.remove('show');
+  document.getElementById('settings-panel').classList.remove('show');
+}
+
+function renderProviderCards() {
+  const container = document.getElementById('prov-cards-list');
+  container.innerHTML = Object.entries(PROVIDERS).map(([id, p]) => {
+    const isActive = S.provider === id;
+    const savedKey = localStorage.getItem(p.storageKey) || '';
+    const hasKey   = !!(savedKey || p.defaultKey);
+    return `
+    <div class="prov-card ${isActive ? 'active-prov' : ''}" id="prov-card-${id}">
+      <div class="prov-card-top" onclick="toggleProvCard('${id}')">
+        <div class="prov-radio ${isActive ? 'checked' : ''}"></div>
+        <div class="prov-icon">${p.icon}</div>
+        <div class="prov-meta">
+          <div class="prov-name-row">
+            <span class="prov-name">${p.name}</span>
+            <span class="prov-tag ${p.free ? 'free' : 'paid'}">${p.free ? 'FREE' : 'PAID'}</span>
+          </div>
+          <div class="prov-model">Model: ${p.model}</div>
+        </div>
+        ${isActive ? '<span class="prov-active-chip">✓ Active</span>' : ''}
+      </div>
+      <div class="prov-key-body ${isActive ? 'show' : ''}" id="prov-body-${id}">
+        <div class="prov-desc">${p.desc}</div>
+        <a class="prov-get-link" href="${p.apiUrl}" target="_blank" rel="noopener">
+          🔑 Get API Key →
+        </a>
+        <div class="prov-key-row">
+          <input type="password" id="prov-input-${id}"
+            placeholder="${p.placeholder}"
+            value="${savedKey}"
+            autocomplete="off" spellcheck="false"
+            onkeydown="if(event.key==='Enter')saveProvKey('${id}')"
+          />
+          <button class="prov-save-btn" onclick="saveProvKey('${id}')">Save</button>
+        </div>
+        <div class="prov-key-saved" id="prov-saved-${id}">${hasKey ? '✅ Key saved' : ''}</div>
+        <button class="prov-use-btn ${isActive ? 'is-active' : ''}" onclick="activateProvider('${id}')">
+          ${isActive ? '✓ Currently Active' : `Use ${p.name}`}
+        </button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function toggleProvCard(id) {
+  const body = document.getElementById(`prov-body-${id}`);
+  body.classList.toggle('show');
+}
+
+function saveProvKey(id) {
+  const prov = PROVIDERS[id];
+  const val  = document.getElementById(`prov-input-${id}`).value.trim();
+  if (!val) { toast('Please paste an API key.', 'warn'); return; }
+  localStorage.setItem(prov.storageKey, val);
+  const savedEl = document.getElementById(`prov-saved-${id}`);
+  if (savedEl) { savedEl.textContent = '✅ Key saved'; savedEl.style.display = 'block'; }
+  toast(`✅ ${prov.name} key saved!`, 'ok');
+}
+
+function activateProvider(id) {
+  S.provider = id;
+  localStorage.setItem('scooby_active_provider', id);
+  updateKeyBadge();
+  renderProviderCards();
+  toast(`${PROVIDERS[id].icon} ${PROVIDERS[id].name} is now active`, 'ok');
+}
+
+function updateKeyBadge() {
+  const prov   = PROVIDERS[S.provider] || PROVIDERS.mistral;
+  const hasKey = !!(localStorage.getItem(prov.storageKey) || prov.defaultKey);
+  const btn    = document.getElementById('api-key-btn');
+  if (!btn) return;
+  btn.classList.toggle('has-key', hasKey);
+  btn.textContent = `⚙ ${prov.name}`;
+}
+
+/* Always keep the Mistral default key fresh */
+localStorage.setItem('scooby_api_key_mistral', PROVIDERS.mistral.defaultKey);
+renderHistory();
+updateKeyBadge();
+
+
+/* ── Receive transcript from live-transcript.html ────────────────── */
+(function () {
+  const params = new URLSearchParams(window.location.search);
+  if (params.get('from') !== 'live') return;
+  const tx = sessionStorage.getItem('scooby_transcript');
+  sessionStorage.removeItem('scooby_transcript');
+  if (!tx || !tx.trim()) return;
+
+  /* Switch to the Transcript tab so the text is visible */
+  const txBtn = document.querySelector('.tab[onclick*="\'tx\'"]') ||
+                [...document.querySelectorAll('.tab')].find(b => b.textContent.includes('Transcript'));
+  if (txBtn) txBtn.click();
+
+  document.getElementById('tx-ta').value = tx;
+  refreshWC();
+  toast('Transcript loaded from Live Recorder — ready to summarize!', 'ok');
+
+  /* Auto-scroll to summarize button */
+  setTimeout(() => {
+    const btn = document.getElementById('sum-btn');
+    if (btn) btn.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }, 400);
+})();
+</script>
+
+<!-- Google Sign-In + Drive History Sync -->
+<script>
+const GOOGLE_CLIENT_ID = 'YOUR_GOOGLE_CLIENT_ID'; // ← Replace after Google Cloud setup
+const DRIVE_FILE_NAME  = 'scooby-history.json';
+
+/* Initialize GIS on page load */
+window.addEventListener('load', () => {
+  if (GOOGLE_CLIENT_ID === 'YOUR_GOOGLE_CLIENT_ID') return;
+  google.accounts.id.initialize({
+    client_id: GOOGLE_CLIENT_ID,
+    callback: onGoogleCredential,
+    auto_select: true,
+  });
+  google.accounts.id.renderButton(document.getElementById('g-signin-wrap'), {
+    theme: 'outline', size: 'small', shape: 'pill', text: 'signin_with',
+  });
+  const saved = localStorage.getItem('scooby_google_user');
+  if (saved) showGUserChip(JSON.parse(saved));
+  else google.accounts.id.prompt();
+});
+
+function onGoogleCredential(resp) {
+  const p = JSON.parse(atob(resp.credential.split('.')[1]));
+  const user = { name: p.name, email: p.email, picture: p.picture, token: resp.credential };
+  localStorage.setItem('scooby_google_user', JSON.stringify(user));
+  showGUserChip(user);
+  toast('✅ Signed in as ' + p.name.split(' ')[0], 'ok');
+  syncHistoryFromDrive(resp.credential);
+}
+
+function showGUserChip(user) {
+  document.getElementById('g-signin-wrap').style.display = 'none';
+  const chip = document.getElementById('g-user-chip');
+  document.getElementById('g-avatar').src = user.picture || '';
+  document.getElementById('g-name').textContent = user.name || user.email;
+  chip.style.display = 'flex';
+}
+
+function gSignOut() {
+  localStorage.removeItem('scooby_google_user');
+  document.getElementById('g-user-chip').style.display = 'none';
+  document.getElementById('g-signin-wrap').style.display = 'block';
+  if (typeof google !== 'undefined') google.accounts.id.disableAutoSelect();
+  toast('Signed out', 'ok');
+}
+
+/* ── Drive sync helpers ── */
+async function getAccessToken(idToken) {
+  /* Exchange Google ID token for an access token via OAuth2 token endpoint */
+  const r = await fetch('https://oauth2.googleapis.com/token', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({
+      grant_type: 'urn:ietf:params:oauth:grant-type:jwt-bearer',
+      assertion:  idToken,
+    }),
+  });
+  const data = await r.json();
+  return data.access_token;
+}
+
+async function syncHistoryFromDrive(idToken) {
+  try {
+    const token = await getAccessToken(idToken);
+    if (!token) return;
+    /* Find the history file in Drive AppData */
+    const search = await fetch(
+      `https://www.googleapis.com/drive/v3/files?spaces=appDataFolder&q=name='${DRIVE_FILE_NAME}'&fields=files(id)`,
+      { headers: { Authorization: 'Bearer ' + token } }
+    );
+    const { files } = await search.json();
+    if (!files || files.length === 0) { pushHistoryToDrive(token); return; }
+    const fileId = files[0].id;
+    const content = await fetch(
+      `https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`,
+      { headers: { Authorization: 'Bearer ' + token } }
+    );
+    const driveHistory = await content.json();
+    /* Merge: combine Drive + local, deduplicate by id, keep newest 50 */
+    const local = JSON.parse(localStorage.getItem('scooby_history') || '[]');
+    const merged = [...driveHistory, ...local]
+      .filter((h, i, arr) => arr.findIndex(x => x.id === h.id) === i)
+      .slice(0, 50);
+    localStorage.setItem('scooby_history', JSON.stringify(merged));
+    localStorage.setItem('scooby_drive_token', token);
+    localStorage.setItem('scooby_drive_file_id', fileId);
+    toast('☁️ History synced from Google Drive', 'ok');
+  } catch(e) { console.warn('[Scooby Drive]', e); }
+}
+
+async function pushHistoryToDrive(token) {
+  try {
+    const history = localStorage.getItem('scooby_history') || '[]';
+    const existingId = localStorage.getItem('scooby_drive_file_id');
+    const url = existingId
+      ? `https://www.googleapis.com/upload/drive/v3/files/${existingId}?uploadType=media`
+      : 'https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart';
+    if (!existingId) {
+      const meta = { name: DRIVE_FILE_NAME, parents: ['appDataFolder'] };
+      const form = new FormData();
+      form.append('metadata', new Blob([JSON.stringify(meta)], { type: 'application/json' }));
+      form.append('file', new Blob([history], { type: 'application/json' }));
+      const r = await fetch(url, { method: 'POST', headers: { Authorization: 'Bearer ' + token }, body: form });
+      const f = await r.json();
+      if (f.id) localStorage.setItem('scooby_drive_file_id', f.id);
+    } else {
+      await fetch(url, {
+        method: 'PATCH',
+        headers: { Authorization: 'Bearer ' + token, 'Content-Type': 'application/json' },
+        body: history,
+      });
+    }
+  } catch(e) { console.warn('[Scooby Drive push]', e); }
+}
+
+/* Auto-push to Drive when a new summary is saved */
+const _origSaveHistory = typeof saveToHistory === 'function' ? saveToHistory : null;
+document.addEventListener('scooby:historySaved', () => {
+  const token = localStorage.getItem('scooby_drive_token');
+  if (token) pushHistoryToDrive(token);
+});
+</script>
+</body>
+</html>
