@@ -1,10 +1,9 @@
-const CACHE = 'scooby-v1';
+const CACHE = 'scooby-v2';
 const ASSETS = [
   './index.html',
   './live-transcript.html',
   './manifest.json',
-  './icon.svg',
-  './icon-maskable.svg',
+  './scooby-icon.png',
 ];
 
 self.addEventListener('install', e => {
