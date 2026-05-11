@@ -380,6 +380,51 @@
     }
     .cors-step span { font-size: 12px; color: var(--txt3); display: block; margin-top: 4px; }
 
+    /* ── Chrome Extension Modal ────────────────────────────────── */
+    #chrome-overlay {
+      display: none; position: fixed; inset: 0; z-index: 300;
+      background: rgba(0,0,0,.6); backdrop-filter: blur(6px);
+      align-items: center; justify-content: center;
+    }
+    #chrome-overlay.show { display: flex; }
+    #chrome-modal {
+      background: #1A2540; border: 1px solid var(--border);
+      border-radius: 18px; padding: 32px 28px; width: 100%; max-width: 480px;
+      box-shadow: 0 24px 64px rgba(0,0,0,.5); margin: 0 16px;
+    }
+    #chrome-modal h3 { font-size: 18px; font-weight: 700; margin-bottom: 8px; }
+    #chrome-modal p  { font-size: 13px; color: var(--txt2); margin-bottom: 20px; line-height: 1.6; }
+    .chrome-steps { list-style: none; margin-bottom: 24px; display: flex; flex-direction: column; gap: 10px; }
+    .chrome-steps li {
+      display: flex; align-items: flex-start; gap: 12px;
+      font-size: 13px; color: var(--txt2);
+    }
+    .chrome-steps li .step-num {
+      flex-shrink: 0; width: 24px; height: 24px; border-radius: 50%;
+      background: var(--accent); color: #fff; font-size: 12px; font-weight: 700;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .chrome-steps li code {
+      background: rgba(0,0,0,.4); padding: 1px 6px; border-radius: 5px;
+      font-family: monospace; font-size: 12px; color: var(--accent-lt);
+    }
+    .chrome-dl-btn {
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+      width: 100%; padding: 13px; border-radius: 11px;
+      background: linear-gradient(135deg, #4285F4, #34A853);
+      color: #fff; font-size: 15px; font-weight: 700;
+      text-decoration: none; border: none; cursor: pointer;
+      box-shadow: 0 4px 18px rgba(66,133,244,.35);
+      transition: opacity .2s; margin-bottom: 14px;
+    }
+    .chrome-dl-btn:hover { opacity: .88; }
+    .chrome-close-row { text-align: center; }
+    .chrome-close-row button {
+      background: none; border: none; color: var(--txt3); font-size: 13px;
+      cursor: pointer; padding: 4px 8px;
+    }
+    .chrome-close-row button:hover { color: var(--txt); }
+
     /* ── API Key Modal ──────────────────────────────────────────── */
     #key-overlay {
       display: none; position: fixed; inset: 0; z-index: 300;
@@ -696,6 +741,7 @@
       </div>
     </div>
     <div style="display:flex;gap:8px">
+      <button class="btn-ghost" onclick="openChromeModal()" style="border-color:rgba(66,133,244,.45);color:#7eb4ff;">🧩 Add to Chrome</button>
       <button class="btn-ghost" id="api-key-btn" onclick="openApiKeyModal()">⚙ API Key</button>
       <button class="btn-ghost" onclick="openHistory()">🕒 History</button>
     </div>
@@ -878,6 +924,39 @@
 
     <div style="margin-top:18px">
       <button class="btn btn-primary" onclick="document.getElementById('cors-overlay').classList.remove('show')">Got it</button>
+    </div>
+  </div>
+</div>
+
+<!-- Chrome Extension Modal -->
+<div id="chrome-overlay" onclick="if(event.target===this)closeChromeModal()">
+  <div id="chrome-modal">
+    <h3>🧩 Install Scooby on Chrome</h3>
+    <p>Download the extension package, then follow these 4 steps to load it into Chrome.</p>
+    <a class="chrome-dl-btn" href="./scooby-chrome-extension.zip" download>
+      ⬇️ Download Scooby Extension (.zip)
+    </a>
+    <ol class="chrome-steps">
+      <li>
+        <span class="step-num">1</span>
+        <span>Unzip the downloaded file — you'll get a folder called <code>chrome-extension</code></span>
+      </li>
+      <li>
+        <span class="step-num">2</span>
+        <span>Open Chrome and go to <code>chrome://extensions</code></span>
+      </li>
+      <li>
+        <span class="step-num">3</span>
+        <span>Enable <strong>Developer mode</strong> (toggle in the top-right corner)</span>
+      </li>
+      <li>
+        <span class="step-num">4</span>
+        <span>Click <strong>Load unpacked</strong> and select the unzipped <code>chrome-extension</code> folder</span>
+      </li>
+    </ol>
+    <p style="margin-bottom:0;font-size:12px;color:var(--txt3);">After loading, click the 🧩 puzzle icon in Chrome's toolbar and pin Scooby for quick access.</p>
+    <div class="chrome-close-row" style="margin-top:18px">
+      <button onclick="closeChromeModal()">✕ Close</button>
     </div>
   </div>
 </div>
@@ -2102,6 +2181,9 @@ function esc(s) {
 function getApiKey() {
   return localStorage.getItem('scooby_api_key_mistral') || PROVIDER.defaultKey || '';
 }
+
+function openChromeModal()  { document.getElementById('chrome-overlay').classList.add('show'); }
+function closeChromeModal() { document.getElementById('chrome-overlay').classList.remove('show'); }
 
 function openApiKeyModal() {
   document.getElementById('key-input').value      = localStorage.getItem('scooby_api_key_mistral') || '';
