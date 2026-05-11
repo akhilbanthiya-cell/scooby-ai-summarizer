@@ -1324,13 +1324,15 @@ function startMicTab() {
   r.onstart = () => {
     micTabState.active = true;
     setMicTabUI(true);
-    toast('🎤 Recording — speak now!', 'ok');
-    micTabState.timer = setInterval(() => {
-      micTabState.seconds++;
-      const m = Math.floor(micTabState.seconds / 60);
-      const s = String(micTabState.seconds % 60).padStart(2, '0');
-      document.getElementById('mic-time').textContent = `${m}:${s}`;
-    }, 1000);
+    if (!micTabState.timer) {
+      toast('🎤 Recording — speak now!', 'ok');
+      micTabState.timer = setInterval(() => {
+        micTabState.seconds++;
+        const m = Math.floor(micTabState.seconds / 60);
+        const s = String(micTabState.seconds % 60).padStart(2, '0');
+        document.getElementById('mic-time').textContent = `${m}:${s}`;
+      }, 1000);
+    }
   };
 
   r.onresult = (e) => {
@@ -1367,6 +1369,7 @@ function startMicTab() {
 function stopMicTab() {
   micTabState.active = false;
   clearInterval(micTabState.timer);
+  micTabState.timer = null;
   if (micTabState.rec) { try { micTabState.rec.stop(); } catch {} micTabState.rec = null; }
   micTabState.interim = '';
   updateMicTA();
