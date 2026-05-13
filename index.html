@@ -1004,6 +1004,7 @@
         <input type="file" id="file-inp" accept=".txt,.pdf,.srt,.vtt,.mp3,.mp4,.wav,.m4a,.webm,.ogg,.mpeg,.flac,.aac,.opus" style="display:none" onchange="onFileSelect(event)" />
       </div>
       <div id="file-badge"></div>
+      <button id="file-retry-btn" class="btn btn-secondary" style="display:none;margin-top:10px;width:100%" onclick="retryLastFile()">🔄 Try Again</button>
       <textarea id="fi-ta" placeholder="File content will appear here…"></textarea>
     </div>
 
@@ -2046,8 +2047,12 @@ function ytId(url) {
 /* ── File handling ───────────────────────────────────────────────── */
 const AUDIO_EXTS = ['mp3','mp4','wav','m4a','webm','ogg','mpeg','flac','aac','opus'];
 const SUBTITLE_EXTS = ['srt','vtt'];
+let _lastFile = null;
 
 function getFileExt(f) { return f.name.split('.').pop().toLowerCase(); }
+function showRetryBtn() { document.getElementById('file-retry-btn').style.display = ''; }
+function hideRetryBtn() { document.getElementById('file-retry-btn').style.display = 'none'; }
+function retryLastFile() { if (_lastFile) routeFile(_lastFile); }
 
 function onFileSelect(e) { if (e.target.files[0]) routeFile(e.target.files[0]); }
 function onDrop(e) {
@@ -2060,6 +2065,8 @@ function onDragOver(e) { e.preventDefault(); document.getElementById('drop-zone'
 function onDragLeave() { document.getElementById('drop-zone').classList.remove('over'); }
 
 function routeFile(f) {
+  _lastFile = f;
+  hideRetryBtn();
   const ext = getFileExt(f);
   if (ext === 'pdf') extractPDF(f);
   else if (SUBTITLE_EXTS.includes(ext)) readSubtitle(f);
@@ -2134,10 +2141,13 @@ function extractPDF(f) {
         pages.push(content.items.map(s => s.str).join(' '));
       }
       const text = pages.join('\n\n').replace(/\s+/g, ' ').trim();
-      if (!text) { toast('Could not extract text from this PDF (may be scanned image).', 'warn'); }
-      else setFileText(text, f, '📕');
+      if (!text) {
+        toast('Could not extract text from this PDF (may be scanned image).', 'warn');
+        showRetryBtn();
+      } else setFileText(text, f, '📕');
     } catch(err) {
       toast('PDF error: ' + err.message, 'warn');
+      showRetryBtn();
     } finally {
       dz.classList.remove('processing');
     }
@@ -2192,6 +2202,7 @@ async function transcribeAudio(f) {
     document.getElementById('fi-ta').placeholder = 'File content will appear here…';
     document.getElementById('drop-zone').classList.remove('processing');
     toast('Transcription error: ' + err.message, 'warn');
+    showRetryBtn();
   }
 }
 
