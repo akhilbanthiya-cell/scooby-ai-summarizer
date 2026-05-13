@@ -2164,11 +2164,6 @@ async function transcribeAudio(f) {
     toast('Audio transcription needs an OpenAI or Groq key. Groq is free — add it in ⚙ Settings → Groq (Llama 3).', 'warn');
     return;
   }
-  const MAX_MB = 25;
-  if (f.size > MAX_MB * 1024 * 1024) {
-    toast(`File is larger than ${MAX_MB} MB — please trim or compress it first.`, 'warn');
-    return;
-  }
   document.getElementById('drop-zone').classList.add('processing');
   setFileBadge(f, '🎙️');
   document.getElementById('fi-ta').value = '';
