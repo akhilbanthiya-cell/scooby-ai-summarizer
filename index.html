@@ -7,6 +7,8 @@
 
   <!-- Google Identity Services -->
   <script src="https://accounts.google.com/gsi/client" async></script>
+  <!-- PDF.js -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 
   <!-- PWA -->
   <link rel="manifest" href="manifest.json" />
@@ -480,6 +482,7 @@
       padding: 36px 20px; text-align: center; cursor: pointer; transition: all .2s;
     }
     .drop-zone:hover, .drop-zone.over { border-color: var(--accent); background: var(--accent-dim); }
+    .drop-zone.processing { opacity: .5; pointer-events: none; cursor: default; }
     .drop-icon { font-size: 34px; margin-bottom: 8px; }
     .drop-text { color: var(--txt2); font-size: 14px; line-height: 1.6; }
     .drop-text strong { color: var(--accent-lt); }
@@ -997,8 +1000,8 @@
         onclick="document.getElementById('file-inp').click()"
         ondrop="onDrop(event)" ondragover="onDragOver(event)" ondragleave="onDragLeave(event)">
         <div class="drop-icon">📁</div>
-        <div class="drop-text"><strong>Click to browse</strong> or drag &amp; drop<br>Supports .txt files</div>
-        <input type="file" id="file-inp" accept=".txt" style="display:none" onchange="onFileSelect(event)" />
+        <div class="drop-text"><strong>Click to browse</strong> or drag &amp; drop<br>Supports <strong>PDF</strong>, <strong>TXT</strong>, <strong>SRT/VTT</strong> subtitles, and <strong>Audio/Video</strong> files (MP3, MP4, WAV, M4A, WEBM, OGG)</div>
+        <input type="file" id="file-inp" accept=".txt,.pdf,.srt,.vtt,.mp3,.mp4,.wav,.m4a,.webm,.ogg,.mpeg,.flac,.aac,.opus" style="display:none" onchange="onFileSelect(event)" />
       </div>
       <div id="file-badge"></div>
       <textarea id="fi-ta" placeholder="File content will appear here…"></textarea>
@@ -2041,27 +2044,155 @@ function ytId(url) {
 }
 
 /* ── File handling ───────────────────────────────────────────────── */
-function onFileSelect(e) { if (e.target.files[0]) readTxt(e.target.files[0]); }
+const AUDIO_EXTS = ['mp3','mp4','wav','m4a','webm','ogg','mpeg','flac','aac','opus'];
+const SUBTITLE_EXTS = ['srt','vtt'];
+
+function getFileExt(f) { return f.name.split('.').pop().toLowerCase(); }
+
+function onFileSelect(e) { if (e.target.files[0]) routeFile(e.target.files[0]); }
 function onDrop(e) {
   e.preventDefault();
   document.getElementById('drop-zone').classList.remove('over');
   const f = e.dataTransfer.files[0];
-  if (f?.name.endsWith('.txt')) readTxt(f);
-  else toast('Only .txt files are supported.', 'warn');
+  if (f) routeFile(f);
 }
 function onDragOver(e) { e.preventDefault(); document.getElementById('drop-zone').classList.add('over'); }
 function onDragLeave() { document.getElementById('drop-zone').classList.remove('over'); }
+
+function routeFile(f) {
+  const ext = getFileExt(f);
+  if (ext === 'pdf') extractPDF(f);
+  else if (SUBTITLE_EXTS.includes(ext)) readSubtitle(f);
+  else if (AUDIO_EXTS.includes(ext)) transcribeAudio(f);
+  else if (ext === 'txt') readTxt(f);
+  else toast(`Unsupported file type: .${ext}`, 'warn');
+}
+
+function setFileBadge(f, label) {
+  const b = document.getElementById('file-badge');
+  b.textContent = `${label}  ${f.name}  (${(f.size/1024).toFixed(1)} KB)`;
+  b.classList.add('show');
+}
+function setFileText(text, f, label) {
+  document.getElementById('fi-ta').value = text;
+  setFileBadge(f, label);
+  refreshWC();
+  toast(`Loaded: ${f.name}`, 'ok');
+}
+
 function readTxt(f) {
   const r = new FileReader();
+  r.onload = ev => setFileText(ev.target.result, f, '📄');
+  r.readAsText(f);
+}
+
+function readSubtitle(f) {
+  const r = new FileReader();
   r.onload = ev => {
-    document.getElementById('fi-ta').value = ev.target.result;
-    const b = document.getElementById('file-badge');
-    b.textContent = `📄 ${f.name}  (${(f.size/1024).toFixed(1)} KB)`;
-    b.classList.add('show');
-    refreshWC();
-    toast(`Loaded: ${f.name}`, 'ok');
+    const raw = ev.target.result;
+    const clean = parseSRT(raw);
+    setFileText(clean, f, '🎬');
   };
   r.readAsText(f);
+}
+
+function parseSRT(text) {
+  return text
+    .split('\n')
+    .filter(line => {
+      const t = line.trim();
+      if (!t) return false;
+      if (/^\d+$/.test(t)) return false;  // sequence number
+      if (/^\d{2}:\d{2}[:\,]\d{2}/.test(t)) return false;  // timestamp
+      if (/^WEBVTT/.test(t)) return false;
+      if (/^NOTE\b/.test(t)) return false;
+      return true;
+    })
+    .join(' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function extractPDF(f) {
+  if (typeof pdfjsLib === 'undefined') {
+    toast('PDF.js not loaded yet, try again in a moment.', 'warn');
+    return;
+  }
+  pdfjsLib.GlobalWorkerOptions.workerSrc =
+    'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+  const dz = document.getElementById('drop-zone');
+  dz.classList.add('processing');
+  toast('Extracting PDF text…', 'ok');
+  const reader = new FileReader();
+  reader.onload = async ev => {
+    try {
+      const pdf = await pdfjsLib.getDocument({ data: ev.target.result }).promise;
+      const pages = [];
+      for (let i = 1; i <= pdf.numPages; i++) {
+        const page = await pdf.getPage(i);
+        const content = await page.getTextContent();
+        pages.push(content.items.map(s => s.str).join(' '));
+      }
+      const text = pages.join('\n\n').replace(/\s+/g, ' ').trim();
+      if (!text) { toast('Could not extract text from this PDF (may be scanned image).', 'warn'); }
+      else setFileText(text, f, '📕');
+    } catch(err) {
+      toast('PDF error: ' + err.message, 'warn');
+    } finally {
+      dz.classList.remove('processing');
+    }
+  };
+  reader.readAsArrayBuffer(f);
+}
+
+async function transcribeAudio(f) {
+  /* Use OpenAI Whisper if an OpenAI key is set; fall back to Groq whisper-large-v3 */
+  const openaiKey = localStorage.getItem('scooby_api_key_openai') || '';
+  const groqKey   = localStorage.getItem('scooby_api_key_groq')   || '';
+  if (!openaiKey && !groqKey) {
+    toast('Audio transcription needs an OpenAI or Groq key. Groq is free — add it in ⚙ Settings → Groq (Llama 3).', 'warn');
+    return;
+  }
+  const MAX_MB = 25;
+  if (f.size > MAX_MB * 1024 * 1024) {
+    toast(`File is larger than ${MAX_MB} MB — please trim or compress it first.`, 'warn');
+    return;
+  }
+  document.getElementById('drop-zone').classList.add('processing');
+  setFileBadge(f, '🎙️');
+  document.getElementById('fi-ta').value = '';
+  document.getElementById('fi-ta').placeholder = 'Transcribing audio…';
+  toast('Transcribing audio, this may take a moment…', 'ok');
+
+  const formData = new FormData();
+  formData.append('file', f);
+  formData.append('model', openaiKey ? 'whisper-1' : 'whisper-large-v3');
+  formData.append('response_format', 'text');
+
+  const endpoint = openaiKey
+    ? 'https://api.openai.com/v1/audio/transcriptions'
+    : 'https://api.groq.com/openai/v1/audio/transcriptions';
+  const key = openaiKey || groqKey;
+
+  try {
+    const res = await fetch(endpoint, {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${key}` },
+      body: formData
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err?.error?.message || res.statusText);
+    }
+    const transcript = await res.text();
+    document.getElementById('fi-ta').placeholder = 'File content will appear here…';
+    document.getElementById('drop-zone').classList.remove('processing');
+    setFileText(transcript, f, '🎙️');
+  } catch(err) {
+    document.getElementById('fi-ta').placeholder = 'File content will appear here…';
+    document.getElementById('drop-zone').classList.remove('processing');
+    toast('Transcription error: ' + err.message, 'warn');
+  }
 }
 
 /* ── Word count ──────────────────────────────────────────────────── */
