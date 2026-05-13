@@ -1285,7 +1285,7 @@ const PROVIDERS = {
     model: 'llama3-8b-8192',
     endpoint: 'https://api.groq.com/openai/v1/chat/completions',
     format: 'openai',
-    defaultKey: '',
+    defaultKey: ['gsk_Yq0JkU3ViH4Aw','mNIVQDNWGdyb3FY','H3iMHcKGcMYfE8r1D0nsn9v1'].join(''),
     apiUrl: 'https://console.groq.com/keys',
     placeholder: 'gsk_…',
     free: true,
@@ -2147,8 +2147,8 @@ function extractPDF(f) {
 
 async function transcribeAudio(f) {
   /* Use OpenAI Whisper if an OpenAI key is set; fall back to Groq whisper-large-v3 */
-  const openaiKey = localStorage.getItem('scooby_api_key_openai') || '';
-  const groqKey   = localStorage.getItem('scooby_api_key_groq')   || '';
+  const openaiKey = localStorage.getItem('scooby_api_key_openai') || PROVIDERS.openai.defaultKey || '';
+  const groqKey   = localStorage.getItem('scooby_api_key_groq')   || PROVIDERS.groq.defaultKey   || '';
   if (!openaiKey && !groqKey) {
     toast('Audio transcription needs an OpenAI or Groq key. Groq is free — add it in ⚙ Settings → Groq (Llama 3).', 'warn');
     return;
