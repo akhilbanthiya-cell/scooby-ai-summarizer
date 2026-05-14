@@ -2921,6 +2921,7 @@ function openInfographic() {
 function closeInfographic() {
   document.getElementById('infographic-overlay').style.display = 'none';
   document.getElementById('infographic-modal').style.display = 'none';
+  document.getElementById('ig-share-bar').style.display = 'none';
 }
 
 async function downloadInfographicPNG() {
@@ -2938,6 +2939,67 @@ async function downloadInfographicPNG() {
     toast('Export error: ' + err.message, 'warn');
   } finally {
     btn.textContent = '⬇️ Download PNG'; btn.disabled = false;
+  }
+}
+
+async function shareInfographic() {
+  const el = document.getElementById('ig-inner');
+  if (!el) { toast('Open the infographic first.', 'warn'); return; }
+  const btn = document.getElementById('infographic-share-btn');
+  btn.textContent = '⏳ Preparing…'; btn.disabled = true;
+  try {
+    const canvas = await html2canvas(el, { backgroundColor: null, scale: 2, useCORS: true });
+    const blob = await new Promise(r => canvas.toBlob(r, 'image/png'));
+    const file = new File([blob], 'infographic.png', { type: 'image/png' });
+    /* Try native share sheet first (mobile: opens WhatsApp, Instagram, etc.) */
+    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+      await navigator.share({
+        files: [file],
+        title: S.summary?.title || 'AI Summary',
+        text: 'Check out this AI-generated summary infographic from Scooby!'
+      });
+      toast('📤 Shared!', 'ok');
+    } else {
+      /* Desktop fallback: show social buttons */
+      document.getElementById('ig-share-bar').style.display = '';
+      document.getElementById('ig-share-bar').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      toast('Choose a platform below to share.', 'ok');
+    }
+  } catch(err) {
+    if (err.name !== 'AbortError') toast('Share error: ' + err.message, 'warn');
+  } finally {
+    btn.textContent = '📤 Share'; btn.disabled = false;
+  }
+}
+
+function igShareTo(platform) {
+  const title = encodeURIComponent((S.summary?.title || 'AI Summary') + ' — via Scooby AI Summarizer');
+  const url   = encodeURIComponent('https://akhilbanthiya-cell.github.io/scooby-ai-summarizer/');
+  const text  = encodeURIComponent('Just summarized a video with Scooby AI! Check it out 👇');
+  const links = {
+    twitter:  `https://twitter.com/intent/tweet?text=${title}&url=${url}`,
+    whatsapp: `https://wa.me/?text=${title}%20${url}`,
+    linkedin: `https://www.linkedin.com/sharing/share-offsite/?url=${url}`,
+    facebook: `https://www.facebook.com/sharer/sharer.php?u=${url}`,
+  };
+  window.open(links[platform], '_blank', 'noopener,width=600,height=500');
+}
+
+async function igCopyImage() {
+  const el = document.getElementById('ig-inner');
+  if (!el) return;
+  const btn = document.getElementById('ig-copy-img-btn');
+  btn.textContent = '⏳ Copying…'; btn.disabled = true;
+  try {
+    const canvas = await html2canvas(el, { backgroundColor: null, scale: 2, useCORS: true });
+    const blob = await new Promise(r => canvas.toBlob(r, 'image/png'));
+    await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
+    btn.textContent = '✅ Copied!';
+    toast('Image copied — now paste it into your post!', 'ok');
+    setTimeout(() => { btn.textContent = '📋 Copy Image'; btn.disabled = false; }, 2500);
+  } catch(err) {
+    toast('Copy failed: ' + err.message, 'warn');
+    btn.textContent = '📋 Copy Image'; btn.disabled = false;
   }
 }
 
@@ -3404,11 +3466,24 @@ document.addEventListener('scooby:historySaved', () => {
     <span style="font-weight:700;color:#fff;font-size:15px">📊 Infographic Preview</span>
     <div style="display:flex;gap:8px">
       <button class="act-btn" onclick="downloadInfographicPNG()" id="infographic-dl-btn">⬇️ Download PNG</button>
+      <button class="act-btn" onclick="shareInfographic()" id="infographic-share-btn">📤 Share</button>
       <button class="podcast-close" onclick="closeInfographic()" style="color:#fff">✕</button>
     </div>
   </div>
   <div style="padding:20px">
     <div id="infographic-canvas"></div>
+    <!-- Social share bar (shown as fallback on desktop) -->
+    <div id="ig-share-bar" style="display:none;margin-top:16px;padding:14px 16px;background:rgba(255,255,255,.05);border-radius:12px">
+      <div style="font-size:12px;color:#94a3b8;margin-bottom:10px;font-weight:600">SHARE ON</div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap">
+        <button onclick="igShareTo('twitter')"  style="background:#000;color:#fff;border:none;padding:8px 16px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:600">𝕏 Twitter</button>
+        <button onclick="igShareTo('whatsapp')" style="background:#25D366;color:#fff;border:none;padding:8px 16px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:600">💬 WhatsApp</button>
+        <button onclick="igShareTo('linkedin')" style="background:#0A66C2;color:#fff;border:none;padding:8px 16px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:600">in LinkedIn</button>
+        <button onclick="igShareTo('facebook')" style="background:#1877F2;color:#fff;border:none;padding:8px 16px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:600">f Facebook</button>
+        <button onclick="igCopyImage()"         style="background:rgba(255,255,255,.1);color:#fff;border:none;padding:8px 16px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:600" id="ig-copy-img-btn">📋 Copy Image</button>
+      </div>
+      <div style="font-size:11px;color:#64748b;margin-top:10px">Tip: Copy the image first, then paste it directly into your post.</div>
+    </div>
   </div>
 </div>
 </body>
