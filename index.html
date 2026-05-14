@@ -2167,12 +2167,13 @@ async function transcribeAudio(f) {
   document.getElementById('drop-zone').classList.add('processing');
   setFileBadge(f, '🎙️');
   document.getElementById('fi-ta').value = '';
-  document.getElementById('fi-ta').placeholder = 'Transcribing audio…';
-  toast('Transcribing audio, this may take a moment…', 'ok');
+  document.getElementById('fi-ta').placeholder = 'Transcribing & translating to English…';
+  toast('Transcribing audio & translating to English…', 'ok');
 
   const formData = new FormData();
   formData.append('file', f);
   formData.append('model', openaiKey ? 'whisper-1' : 'whisper-large-v3');
+  formData.append('task', 'translate');   // auto-detect language, output English
   formData.append('response_format', 'text');
 
   const endpoint = openaiKey
