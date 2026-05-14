@@ -3089,6 +3089,7 @@ body:hover #ctrl{opacity:1}
   <button onclick="nxt()">&#9197;</button>
   <button onclick="tnarr()" id="nb" title="Narration">&#128266;</button>
   <button onclick="document.documentElement.requestFullscreen&&document.documentElement.requestFullscreen()" title="Fullscreen">&#9974;</button>
+  <button onclick="dlStory()" title="Download HTML" style="font-size:13px">&#11015; Download</button>
 </div>
 <div id="ctr"></div><div id="rem"></div>
 <script>
@@ -3155,6 +3156,14 @@ document.addEventListener('keydown',function(ev){
   if(ev.key==='ArrowLeft') prv();
   if(ev.key==='f'||ev.key==='F') document.documentElement.requestFullscreen&&document.documentElement.requestFullscreen();
 });
+function dlStory(){
+  var html='<!DOCTYPE html>'+document.documentElement.outerHTML;
+  var a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([html],{type:'text/html'}));
+  a.download='scooby-story.html';
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
 show(0); setInterval(tick,100);
 <\/script></body></html>`;
 }
