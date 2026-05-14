@@ -1,4 +1,4 @@
-const CACHE = 'scooby-v3';
+const CACHE = 'scooby-v4';
 const ASSETS = [
   './index.html',
   './live-transcript.html',

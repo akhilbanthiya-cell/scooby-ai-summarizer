@@ -1124,7 +1124,7 @@
       <button class="act-btn" onclick="doShare()">📤 Share</button>
       <button class="act-btn" onclick="doDownloadHTML()">⬇️ Download HTML</button>
       <button class="act-btn" onclick="doDownloadPDF()">📄 Download PDF</button>
-      <button class="act-btn" id="podcast-btn" onclick="openPodcast()">🎙️ Podcast</button>
+      <button class="act-btn" id="podcast-btn" onclick="openPodcast()">🎙️ Create Podcast</button>
       <button class="act-btn" onclick="resetApp()" style="margin-left:auto">🔄 New Summary</button>
     </div>
 
@@ -2995,6 +2995,7 @@ function resetApp() {
   if (body) { body.classList.remove('open'); document.getElementById('chat-toggle')?.classList.remove('open'); }
   document.getElementById('like-btn')?.classList.remove('liked');
   document.getElementById('dislike-btn')?.classList.remove('disliked');
+  closePodcast();
   document.getElementById('input-card').scrollIntoView({behavior:'smooth',block:'start'});
 }
 
