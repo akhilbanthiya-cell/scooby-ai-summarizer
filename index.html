@@ -1377,7 +1377,7 @@ const PROVIDERS = {
   },
   anthropic: {
     name: 'Anthropic Claude', icon: '🧠',
-    model: 'claude-haiku-4-5-20251001',
+    model: 'claude-3-5-haiku-20241022',
     endpoint: 'https://api.anthropic.com/v1/messages',
     format: 'anthropic',
     defaultKey: '',
@@ -2387,6 +2387,7 @@ async function callAPI(transcript, mode) {
         'content-type': 'application/json',
         'x-api-key': key,
         'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-iab': 'true',
       },
       body,
     });
@@ -3263,7 +3264,7 @@ async function sendChat() {
     } else if (prov.format === 'anthropic') {
       const r = await (await fetch(prov.endpoint,{
         method:'POST',
-        headers:{'content-type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01','anthropic-dangerous-allow-browser':'true'},
+        headers:{'content-type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-iab':'true'},
         body: JSON.stringify({model:prov.model,max_tokens:1024,system:sysMsg,messages:chatLog})
       })).json();
       reply = r.content?.[0]?.text || 'No response.';
