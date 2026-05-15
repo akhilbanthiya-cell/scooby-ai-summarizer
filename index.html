@@ -1296,7 +1296,8 @@
     <h2>⚙ Settings</h2>
     <button class="settings-hdr-close" onclick="closeSettings()">✕</button>
   </div>
-  <div class="settings-section-label">AI Provider</div>
+  <div id="prov-active-banner" style="margin:14px 14px 0;padding:12px 16px;border-radius:12px;background:rgba(124,58,237,.12);border:1px solid rgba(124,58,237,.3);font-size:13px;color:var(--accent-lt)"></div>
+  <div class="settings-section-label" style="margin-top:8px">Choose AI Model — Mistral is default (free)</div>
   <div id="prov-cards-list"></div>
   <div class="settings-footer">
     <p>Keys are stored only in your browser (localStorage). Nothing is sent to external servers except the transcript you choose to summarize.</p>
@@ -3406,60 +3407,79 @@ function closeSettings() {
 
 function renderProviderCards() {
   const container = document.getElementById('prov-cards-list');
+  const cur = PROVIDERS[S.provider] || PROVIDERS.mistral;
+
+  /* Active banner */
+  const banner = document.getElementById('prov-active-banner');
+  if (banner) banner.innerHTML = `${cur.icon} <strong>Currently using: ${cur.name}</strong> &nbsp;·&nbsp; ${cur.model}`;
+
   container.innerHTML = Object.entries(PROVIDERS).map(([id, p]) => {
-    const isActive = S.provider === id;
-    const savedKey = localStorage.getItem(p.storageKey) || '';
-    const hasKey   = !!(savedKey || p.defaultKey);
+    const isActive  = S.provider === id;
+    const savedKey  = localStorage.getItem(p.storageKey) || '';
+    const hasKey    = !!(savedKey || p.defaultKey);
+    const needsKey  = !hasKey;
+    const topClick  = (hasKey || p.free) ? `activateProvider('${id}')` : `expandProv('${id}')`;
+    const rightChip = isActive
+      ? `<span class="prov-active-chip">✓ Active</span>`
+      : needsKey
+        ? `<span style="font-size:11px;color:var(--txt3);white-space:nowrap">Add key →</span>`
+        : `<span style="font-size:11px;color:var(--accent-lt);white-space:nowrap">Select →</span>`;
+
     return `
     <div class="prov-card ${isActive ? 'active-prov' : ''}" id="prov-card-${id}">
-      <div class="prov-card-top" onclick="toggleProvCard('${id}')">
+      <div class="prov-card-top" onclick="${topClick}">
         <div class="prov-radio ${isActive ? 'checked' : ''}"></div>
         <div class="prov-icon">${p.icon}</div>
         <div class="prov-meta">
           <div class="prov-name-row">
             <span class="prov-name">${p.name}</span>
             <span class="prov-tag ${p.free ? 'free' : 'paid'}">${p.free ? 'FREE' : 'PAID'}</span>
+            ${id === 'mistral' ? '<span class="prov-tag" style="background:rgba(59,130,246,.12);color:#60A5FA">DEFAULT</span>' : ''}
           </div>
-          <div class="prov-model">Model: ${p.model}</div>
+          <div class="prov-model">Model: ${p.model} ${hasKey && !isActive ? '&nbsp;·&nbsp; ✅ Key saved' : ''}</div>
         </div>
-        ${isActive ? '<span class="prov-active-chip">✓ Active</span>' : ''}
+        ${rightChip}
       </div>
       <div class="prov-key-body ${isActive ? 'show' : ''}" id="prov-body-${id}">
         <div class="prov-desc">${p.desc}</div>
-        <a class="prov-get-link" href="${p.apiUrl}" target="_blank" rel="noopener">
-          🔑 Get API Key →
-        </a>
+        <a class="prov-get-link" href="${p.apiUrl}" target="_blank" rel="noopener">🔑 Get API Key →</a>
         <div class="prov-key-row">
           <input type="password" id="prov-input-${id}"
             placeholder="${p.placeholder}"
             value="${savedKey}"
             autocomplete="off" spellcheck="false"
-            onkeydown="if(event.key==='Enter')saveProvKey('${id}')"
+            onkeydown="if(event.key==='Enter')saveAndActivate('${id}')"
           />
-          <button class="prov-save-btn" onclick="saveProvKey('${id}')">Save</button>
+          <button class="prov-save-btn" onclick="saveAndActivate('${id}')">
+            ${isActive ? 'Update Key' : 'Save & Use'}
+          </button>
         </div>
-        <div class="prov-key-saved" id="prov-saved-${id}">${hasKey ? '✅ Key saved' : ''}</div>
-        <button class="prov-use-btn ${isActive ? 'is-active' : ''}" onclick="activateProvider('${id}')">
-          ${isActive ? '✓ Currently Active' : `Use ${p.name}`}
-        </button>
+        <div class="prov-key-saved" id="prov-saved-${id}" style="${hasKey ? 'display:block' : ''}">${hasKey ? '✅ Key saved' : ''}</div>
+        ${!isActive && hasKey ? `<button class="prov-use-btn" onclick="activateProvider('${id}')">⚡ Switch to ${p.name}</button>` : ''}
       </div>
     </div>`;
   }).join('');
 }
 
-function toggleProvCard(id) {
+function expandProv(id) {
   const body = document.getElementById(`prov-body-${id}`);
-  body.classList.toggle('show');
+  if (body) { body.classList.add('show'); }
+  setTimeout(() => document.getElementById(`prov-input-${id}`)?.focus(), 50);
 }
 
-function saveProvKey(id) {
+function saveAndActivate(id) {
   const prov = PROVIDERS[id];
-  const val  = document.getElementById(`prov-input-${id}`).value.trim();
-  if (!val) { toast('Please paste an API key.', 'warn'); return; }
-  localStorage.setItem(prov.storageKey, val);
-  const savedEl = document.getElementById(`prov-saved-${id}`);
-  if (savedEl) { savedEl.textContent = '✅ Key saved'; savedEl.style.display = 'block'; }
-  toast(`✅ ${prov.name} key saved!`, 'ok');
+  const val  = (document.getElementById(`prov-input-${id}`)?.value || '').trim();
+  if (val) {
+    localStorage.setItem(prov.storageKey, val);
+    const savedEl = document.getElementById(`prov-saved-${id}`);
+    if (savedEl) { savedEl.textContent = '✅ Key saved'; savedEl.style.display = 'block'; }
+  } else if (!prov.defaultKey) {
+    toast(`Please paste your ${prov.name} API key first.`, 'warn');
+    expandProv(id);
+    return;
+  }
+  activateProvider(id);
 }
 
 function activateProvider(id) {
@@ -3467,7 +3487,7 @@ function activateProvider(id) {
   localStorage.setItem('scooby_active_provider', id);
   updateKeyBadge();
   renderProviderCards();
-  toast(`${PROVIDERS[id].icon} ${PROVIDERS[id].name} is now active`, 'ok');
+  toast(`${PROVIDERS[id].icon} Switched to ${PROVIDERS[id].name}!`, 'ok');
 }
 
 function updateKeyBadge() {
