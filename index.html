@@ -142,55 +142,126 @@
     }
 
     /* ── Investor Calls ────────────────────────────────────────── */
-    #ir-section { margin-top: 24px; }
-    .ir-filter-row { display: flex; gap: 6px; margin-bottom: 16px; flex-wrap: wrap; }
+    #ir-section { margin-top: 28px; }
+    .ir-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:18px; flex-wrap:wrap; gap:10px; }
+    .ir-title-group { display:flex; align-items:center; gap:10px; }
+    .ir-title { font-size:15px; font-weight:700; color:var(--txt); }
+    .ir-count-badge {
+      font-size:11px; font-weight:700; padding:2px 8px; border-radius:20px;
+      background:var(--accent-dim); color:var(--accent-lt); border:1px solid rgba(124,58,237,.2);
+    }
+    .ir-refresh-btn {
+      display:flex; align-items:center; gap:5px;
+      background:var(--card); border:1px solid var(--border); color:var(--txt2);
+      padding:6px 13px; border-radius:8px; font-size:12px; font-weight:600;
+      cursor:pointer; transition:all .18s; font-family:inherit;
+    }
+    .ir-refresh-btn:hover { border-color:var(--accent); color:var(--txt); }
+    .ir-refresh-btn:disabled { opacity:.5; cursor:not-allowed; }
+    .ir-refresh-btn svg { transition:transform .5s; }
+    .ir-refresh-btn.spinning svg { animation:ir-spin .7s linear infinite; }
+    @keyframes ir-spin { to { transform:rotate(360deg); } }
+
+    .ir-filter-row { display:flex; gap:6px; margin-bottom:20px; }
     .ir-filter {
-      padding: 5px 13px; border-radius: 20px; font-size: 12px; font-weight: 600;
-      border: 1px solid var(--border); background: transparent; color: var(--txt2);
-      cursor: pointer; transition: all .18s;
+      padding:6px 16px; border-radius:20px; font-size:12px; font-weight:600;
+      border:1px solid var(--border); background:transparent; color:var(--txt3);
+      cursor:pointer; transition:all .18s; font-family:inherit;
     }
-    .ir-filter.active { background: var(--accent); border-color: var(--accent); color: #fff; }
-    .ir-filter:hover:not(.active) { border-color: var(--accent); color: var(--txt); }
-    .ir-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px,1fr)); gap: 10px; }
+    .ir-filter.active { background:var(--accent); border-color:var(--accent); color:#fff; box-shadow:0 0 14px rgba(124,58,237,.3); }
+    .ir-filter:hover:not(.active) { border-color:rgba(255,255,255,.15); color:var(--txt2); }
+
+    .ir-group-label {
+      font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.08em;
+      color:var(--txt3); margin:18px 0 10px; display:flex; align-items:center; gap:8px;
+    }
+    .ir-group-label::after { content:''; flex:1; height:1px; background:var(--border); }
+
+    .ir-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(260px,1fr)); gap:10px; }
+
     .ir-card {
-      background: rgba(255,255,255,.03); border: 1px solid var(--border);
-      border-radius: 12px; padding: 14px 16px; display: flex; flex-direction: column; gap: 6px;
-      transition: border-color .2s;
+      position:relative; overflow:hidden;
+      background:rgba(255,255,255,.03); border:1px solid var(--border);
+      border-radius:14px; padding:16px;
+      display:flex; flex-direction:column; gap:10px;
+      transition:transform .18s, border-color .18s, box-shadow .18s;
+      cursor:default;
     }
-    .ir-card:hover { border-color: rgba(124,58,237,.4); }
-    .ir-card-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; }
-    .ir-company { font-size: 14px; font-weight: 700; color: var(--txt); }
-    .ir-ticker { font-size: 11px; color: var(--txt3); font-weight: 500; }
-    .ir-date-badge {
-      font-size: 11px; font-weight: 700; white-space: nowrap;
-      padding: 3px 8px; border-radius: 6px;
-      background: rgba(124,58,237,.15); color: var(--accent-lt);
+    .ir-card::before {
+      content:''; position:absolute; left:0; top:0; bottom:0; width:3px;
+      border-radius:14px 0 0 14px;
+      background:var(--ir-accent, var(--border));
     }
-    .ir-date-badge.past { background: rgba(100,116,139,.12); color: var(--txt3); }
-    .ir-date-badge.soon { background: rgba(16,185,129,.15); color: #34D399; }
-    .ir-meta { display: flex; align-items: center; gap: 7px; flex-wrap: wrap; }
-    .ir-quarter { font-size: 12px; color: var(--txt2); }
-    .ir-days { font-size: 11px; color: var(--txt3); }
-    .ir-conf-row { display: flex; align-items: center; gap: 8px; margin-top: 2px; }
-    .ir-conf-track {
-      flex: 1; height: 3px; border-radius: 2px; background: rgba(255,255,255,.06);
+    .ir-card:hover {
+      transform:translateY(-2px);
+      border-color:rgba(255,255,255,.1);
+      box-shadow:0 8px 24px rgba(0,0,0,.25);
     }
-    .ir-conf-fill { height: 100%; border-radius: 2px; background: var(--accent); }
-    .ir-conf-fill.mid { background: var(--amber); }
-    .ir-conf-fill.low { background: var(--txt3); }
-    .ir-conf-label { font-size: 10px; color: var(--txt3); white-space: nowrap; }
+    .ir-card.urgent { --ir-accent:#10B981; border-color:rgba(16,185,129,.2); }
+    .ir-card.urgent:hover { box-shadow:0 8px 24px rgba(16,185,129,.1); }
+    .ir-card.upcoming { --ir-accent:var(--accent); }
+    .ir-card.future { --ir-accent:#3B82F6; }
+    .ir-card.past-card { --ir-accent:var(--txt3); opacity:.65; }
+
+    .ir-card-row { display:flex; align-items:center; gap:12px; }
+    .ir-avatar {
+      width:38px; height:38px; border-radius:10px; flex-shrink:0;
+      display:flex; align-items:center; justify-content:center;
+      font-size:12px; font-weight:800; letter-spacing:-.5px;
+      background:var(--ir-accent, var(--accent-dim)); color:#fff;
+      opacity:.9;
+    }
+    .ir-avatar.urgent { background:rgba(16,185,129,.2); color:#34D399; }
+    .ir-avatar.upcoming { background:rgba(124,58,237,.2); color:var(--accent-lt); }
+    .ir-avatar.future { background:rgba(59,130,246,.2); color:#93C5FD; }
+    .ir-avatar.past-av { background:rgba(100,116,139,.15); color:var(--txt3); }
+
+    .ir-info { flex:1; min-width:0; }
+    .ir-company { font-size:14px; font-weight:700; color:var(--txt); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .ir-sub { font-size:11px; color:var(--txt3); margin-top:1px; }
+
+    .ir-date-block { text-align:right; flex-shrink:0; }
+    .ir-date-main { font-size:13px; font-weight:700; color:var(--txt); }
+    .ir-date-main.soon-color { color:#34D399; }
+    .ir-countdown {
+      display:inline-flex; align-items:center; gap:3px;
+      font-size:11px; font-weight:600; margin-top:3px;
+      padding:2px 8px; border-radius:12px; white-space:nowrap;
+    }
+    .ir-countdown.today { background:rgba(16,185,129,.15); color:#34D399; }
+    .ir-countdown.soon  { background:rgba(16,185,129,.1);  color:#6EE7B7; }
+    .ir-countdown.later { background:rgba(124,58,237,.1);  color:var(--accent-lt); }
+    .ir-countdown.far   { background:rgba(59,130,246,.1);  color:#93C5FD; }
+    .ir-countdown.past  { background:rgba(100,116,139,.1); color:var(--txt3); }
+
+    .ir-footer { display:flex; align-items:center; justify-content:space-between; gap:6px; }
+    .ir-quarter-chip {
+      font-size:11px; font-weight:600; padding:2px 8px; border-radius:6px;
+      background:rgba(255,255,255,.05); color:var(--txt2); border:1px solid var(--border);
+    }
+    .ir-badges { display:flex; gap:5px; align-items:center; }
     .ir-est-badge {
-      font-size: 10px; font-weight: 600; padding: 1px 6px; border-radius: 4px;
-      background: rgba(245,158,11,.12); color: var(--amber); border: 1px solid rgba(245,158,11,.2);
+      font-size:10px; font-weight:700; padding:2px 6px; border-radius:5px;
+      background:rgba(245,158,11,.1); color:var(--amber); border:1px solid rgba(245,158,11,.2);
     }
-    .ir-empty { text-align: center; padding: 32px 0; color: var(--txt3); font-size: 14px; }
+    .ir-conf-dot {
+      width:6px; height:6px; border-radius:50%; flex-shrink:0;
+    }
+    .ir-conf-dot.high { background:#10B981; box-shadow:0 0 6px rgba(16,185,129,.5); }
+    .ir-conf-dot.mid  { background:var(--amber); box-shadow:0 0 6px rgba(245,158,11,.4); }
+    .ir-conf-dot.low  { background:var(--txt3); }
+    .ir-conf-pct { font-size:10px; color:var(--txt3); }
+
+    .ir-empty { text-align:center; padding:40px 0; color:var(--txt3); font-size:14px; }
     .ir-skeleton {
-      height: 86px; border-radius: 12px;
-      background: linear-gradient(90deg, rgba(255,255,255,.04) 25%, rgba(255,255,255,.07) 50%, rgba(255,255,255,.04) 75%);
-      background-size: 200% 100%;
-      animation: ir-shimmer 1.4s infinite;
+      height:96px; border-radius:14px;
+      background:linear-gradient(90deg,rgba(255,255,255,.03) 25%,rgba(255,255,255,.06) 50%,rgba(255,255,255,.03) 75%);
+      background-size:200% 100%; animation:ir-shimmer 1.5s infinite;
     }
     @keyframes ir-shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
+    .ir-footer-meta { display:flex; justify-content:space-between; align-items:center; margin-top:14px; flex-wrap:wrap; gap:6px; }
+    .ir-footer-meta a, .ir-footer-meta span { font-size:11px; color:var(--txt3); text-decoration:none; }
+    .ir-footer-meta a:hover { color:var(--txt2); }
 
     /* ── Tabs ───────────────────────────────────────────────────── */
     .tabs {
@@ -1265,10 +1336,15 @@
   </div>
   <!-- ── Investor Calls Section ──────────────────────────────── -->
   <section id="ir-section" class="card">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
-      <div class="card-title" style="margin-bottom:0">📅 Upcoming Investor &amp; Earnings Calls</div>
-      <button class="btn-ghost" onclick="loadIRCalls(true)" id="ir-refresh-btn"
-        style="font-size:12px;padding:5px 12px">↻ Refresh</button>
+    <div class="ir-header">
+      <div class="ir-title-group">
+        <span class="ir-title">📅 Investor &amp; Earnings Calls</span>
+        <span class="ir-count-badge" id="ir-count">—</span>
+      </div>
+      <button class="ir-refresh-btn" onclick="loadIRCalls(true)" id="ir-refresh-btn">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></svg>
+        Refresh
+      </button>
     </div>
     <div class="ir-filter-row">
       <button class="ir-filter active" onclick="irSetFilter('all',this)">All</button>
@@ -1282,10 +1358,9 @@
         <div class="ir-skeleton"></div>
       </div>
     </div>
-    <div style="font-size:11px;color:var(--txt3);margin-top:12px;text-align:right">
-      Powered by <a href="https://ir-pulse-engine-production.up.railway.app" target="_blank"
-        style="color:var(--txt3);text-decoration:none;border-bottom:1px solid var(--border)">IR Pulse Engine</a>
-      &nbsp;·&nbsp; <span id="ir-fetched-at"></span>
+    <div class="ir-footer-meta">
+      <a href="https://ir-pulse-engine-production.up.railway.app" target="_blank">IR Pulse Engine</a>
+      <span id="ir-fetched-at"></span>
     </div>
   </section>
 </main>
@@ -3738,7 +3813,7 @@ async function loadIRCalls(force = false) {
   const list = document.getElementById('ir-calls-list');
   if (!force && _irAllCalls.length) return;
 
-  btn.textContent = '⏳';
+  btn.classList.add('spinning');
   btn.disabled = true;
   list.innerHTML = '<div class="ir-grid">' +
     '<div class="ir-skeleton"></div>'.repeat(6) + '</div>';
@@ -3747,6 +3822,9 @@ async function loadIRCalls(force = false) {
     const res  = await fetch(`${IR_API}/api/calls?include_past=false&days=180`);
     const data = await res.json();
     _irAllCalls = (data.calls || []).sort((a, b) => a.call_date.localeCompare(b.call_date));
+
+    const countEl = document.getElementById('ir-count');
+    if (countEl) countEl.textContent = _irAllCalls.length;
 
     const ts = data.fetched_at ? new Date(data.fetched_at + 'Z').toLocaleString('en-IN',
       { day:'numeric', month:'short', hour:'2-digit', minute:'2-digit' }) : '';
@@ -3757,7 +3835,7 @@ async function loadIRCalls(force = false) {
   } catch (e) {
     list.innerHTML = `<div class="ir-empty">⚠️ Could not load calls — ${e.message}</div>`;
   } finally {
-    btn.textContent = '↻ Refresh';
+    btn.classList.remove('spinning');
     btn.disabled = false;
   }
 }
@@ -3771,13 +3849,13 @@ function irSetFilter(f, btn) {
 
 function irRender() {
   const today = new Date(); today.setHours(0,0,0,0);
-  const endOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+  const endOfMonth   = new Date(today.getFullYear(), today.getMonth() + 1, 0);
   const endOfQuarter = new Date(today.getFullYear(), today.getMonth() + 3, 0);
 
   const calls = _irAllCalls.filter(c => {
     const d = new Date(c.call_date);
-    if (_irFilter === 'month')   return d <= endOfMonth;
-    if (_irFilter === 'quarter') return d <= endOfQuarter;
+    if (_irFilter === 'month')   return d >= today && d <= endOfMonth;
+    if (_irFilter === 'quarter') return d >= today && d <= endOfQuarter;
     return true;
   });
 
@@ -3787,40 +3865,76 @@ function irRender() {
     return;
   }
 
-  list.innerHTML = '<div class="ir-grid">' + calls.map(c => irCardHTML(c, today)).join('') + '</div>';
+  const groups = [
+    { label: 'This Week',  cards: [] },
+    { label: 'This Month', cards: [] },
+    { label: 'Later',      cards: [] },
+    { label: 'Past',       cards: [] },
+  ];
+  for (const c of calls) {
+    const diff = Math.round((new Date(c.call_date) - today) / 86400000);
+    if      (diff < 0)    groups[3].cards.push(irCardHTML(c, today));
+    else if (diff <= 7)   groups[0].cards.push(irCardHTML(c, today));
+    else if (diff <= 30)  groups[1].cards.push(irCardHTML(c, today));
+    else                  groups[2].cards.push(irCardHTML(c, today));
+  }
+
+  let html = '';
+  for (const g of groups) {
+    if (!g.cards.length) continue;
+    html += `<div class="ir-group-label">${g.label}</div><div class="ir-grid">${g.cards.join('')}</div>`;
+  }
+  list.innerHTML = html;
 }
 
 function irCardHTML(c, today) {
-  const d      = new Date(c.call_date);
-  const diff   = Math.round((d - today) / 86400000);
-  const soon   = diff >= 0 && diff <= 7;
-  const dateStr = d.toLocaleDateString('en-IN', { day:'numeric', month:'short', year:'numeric' });
-  const daysStr = diff === 0 ? 'Today' : diff === 1 ? 'Tomorrow' : diff > 0 ? `${diff}d away` : `${-diff}d ago`;
-  const badgeCls = diff < 0 ? 'past' : soon ? 'soon' : '';
+  const d    = new Date(c.call_date);
+  const diff = Math.round((d - today) / 86400000);
 
-  const isEst   = c.confidence < 0.8;
-  const conf    = Math.round(c.confidence * 100);
-  const confCls = c.confidence >= 0.8 ? '' : c.confidence >= 0.6 ? 'mid' : 'low';
+  const tier    = diff < 0 ? 'past' : diff <= 7 ? 'urgent' : diff <= 30 ? 'upcoming' : 'future';
+  const cardCls = tier === 'past' ? 'past-card' : tier;
+  const avCls   = tier === 'past' ? 'past-av'   : tier;
 
-  return `
-    <div class="ir-card">
-      <div class="ir-card-top">
-        <div>
-          <div class="ir-company">${c.company_name}</div>
-          <div class="ir-ticker">${c.nse_symbol} · BSE ${c.bse_code}</div>
-        </div>
-        <div class="ir-date-badge ${badgeCls}">${dateStr}</div>
-      </div>
-      <div class="ir-meta">
-        <span class="ir-quarter">${c.quarter || c.call_type}</span>
-        <span class="ir-days">${daysStr}</span>
-        ${isEst ? '<span class="ir-est-badge">est</span>' : ''}
-      </div>
-      <div class="ir-conf-row">
-        <div class="ir-conf-track"><div class="ir-conf-fill ${confCls}" style="width:${conf}%"></div></div>
-        <span class="ir-conf-label">${conf}% conf</span>
-      </div>
-    </div>`;
+  const initials = c.company_name.split(/\s+/).slice(0,2).map(w => w[0]).join('').toUpperCase();
+
+  const dateMain     = d.toLocaleDateString('en-IN', { day:'numeric', month:'short' });
+  const dateSoonCls  = diff >= 0 && diff <= 7 ? ' soon-color' : '';
+
+  let cntCls, cntTxt;
+  if      (diff < 0)   { cntCls = 'past';  cntTxt = `${-diff}d ago`; }
+  else if (diff === 0) { cntCls = 'today'; cntTxt = 'Today'; }
+  else if (diff === 1) { cntCls = 'today'; cntTxt = 'Tomorrow'; }
+  else if (diff <= 7)  { cntCls = 'soon';  cntTxt = `${diff}d away`; }
+  else if (diff <= 30) { cntCls = 'later'; cntTxt = `${diff}d away`; }
+  else                 { cntCls = 'far';   cntTxt = `${diff}d away`; }
+
+  const sub      = [c.nse_symbol, c.bse_code ? `BSE ${c.bse_code}` : ''].filter(Boolean).join(' · ');
+  const qLabel   = c.quarter || c.call_type || '';
+  const conf     = Math.round(c.confidence * 100);
+  const confCls  = c.confidence >= 0.8 ? 'high' : c.confidence >= 0.6 ? 'mid' : 'low';
+  const isEst    = c.confidence < 0.8;
+
+  return `<div class="ir-card ${cardCls}">
+  <div class="ir-card-row">
+    <div class="ir-avatar ${avCls}">${initials}</div>
+    <div class="ir-info">
+      <div class="ir-company">${c.company_name}</div>
+      <div class="ir-sub">${sub}</div>
+    </div>
+    <div class="ir-date-block">
+      <div class="ir-date-main${dateSoonCls}">${dateMain}</div>
+      <div class="ir-countdown ${cntCls}">${cntTxt}</div>
+    </div>
+  </div>
+  <div class="ir-footer">
+    <span class="ir-quarter-chip">${qLabel}</span>
+    <div class="ir-badges">
+      ${isEst ? '<span class="ir-est-badge">est</span>' : ''}
+      <span class="ir-conf-dot ${confCls}"></span>
+      <span class="ir-conf-pct">${conf}%</span>
+    </div>
+  </div>
+</div>`;
 }
 
 /* Auto-load when page is ready */
