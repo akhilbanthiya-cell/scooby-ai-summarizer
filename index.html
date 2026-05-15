@@ -2374,30 +2374,22 @@ async function callAPI(transcript, mode) {
     return parseAPIText(result.candidates[0].content.parts[0].text);
   }
 
-  /* ── Anthropic format ── */
+  /* ── Anthropic format (via official SDK for browser CORS) ── */
   if (prov.format === 'anthropic') {
-    const body = JSON.stringify({
-      model: prov.model, max_tokens: 4096,
-      system: sysPrompt(mode),
-      messages: [{ role: 'user', content: userMsg }],
-    });
-    const resp = await fetch(prov.endpoint, {
-      method: 'POST',
-      headers: {
-        'content-type': 'application/json',
-        'x-api-key': key,
-        'anthropic-version': '2023-06-01',
-        'anthropic-dangerous-direct-browser-iab': 'true',
-      },
-      body,
-    });
-    if (!resp.ok) {
-      const e = await resp.json().catch(() => ({}));
-      if (resp.status === 401) throw new Error('Invalid Anthropic API key — open ⚙ Settings to update it.');
-      throw new Error(e.error?.message || `HTTP ${resp.status}`);
+    const { default: Anthropic } = await import('https://esm.sh/@anthropic-ai/sdk');
+    const client = new Anthropic({ apiKey: key, dangerouslyAllowBrowser: true });
+    let msg;
+    try {
+      msg = await client.messages.create({
+        model: prov.model, max_tokens: 4096,
+        system: sysPrompt(mode),
+        messages: [{ role: 'user', content: userMsg }],
+      });
+    } catch (sdkErr) {
+      if (sdkErr.status === 401) throw new Error('Invalid Anthropic API key — open ⚙ Settings to update it.');
+      throw new Error(sdkErr.message || 'Anthropic API error');
     }
-    const result = await resp.json();
-    return parseAPIText(result.content[0].text);
+    return parseAPIText(msg.content[0].text);
   }
 
   /* ── Cohere format ── */
@@ -3262,11 +3254,9 @@ async function sendChat() {
       })).json();
       reply = r.candidates?.[0]?.content?.parts?.[0]?.text || 'No response.';
     } else if (prov.format === 'anthropic') {
-      const r = await (await fetch(prov.endpoint,{
-        method:'POST',
-        headers:{'content-type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-iab':'true'},
-        body: JSON.stringify({model:prov.model,max_tokens:1024,system:sysMsg,messages:chatLog})
-      })).json();
+      const { default: Anthropic } = await import('https://esm.sh/@anthropic-ai/sdk');
+      const client = new Anthropic({ apiKey: key, dangerouslyAllowBrowser: true });
+      const r = await client.messages.create({model:prov.model,max_tokens:1024,system:sysMsg,messages:chatLog});
       reply = r.content?.[0]?.text || 'No response.';
     } else {
       const r = await (await fetch(prov.endpoint,{

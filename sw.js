@@ -1,4 +1,4 @@
-const CACHE = 'scooby-v6';
+const CACHE = 'scooby-v7';
 const ASSETS = [
   './index.html',
   './live-transcript.html',
@@ -31,7 +31,8 @@ self.addEventListener('fetch', e => {
       e.request.url.includes('api.groq.com') ||
       e.request.url.includes('generativelanguage.googleapis.com') ||
       e.request.url.includes('api.anthropic.com') ||
-      e.request.url.includes('api.cohere.ai')) return;
+      e.request.url.includes('api.cohere.ai') ||
+      e.request.url.includes('esm.sh')) return;
   e.respondWith(
     caches.match(e.request).then(cached => cached || fetch(e.request))
   );
