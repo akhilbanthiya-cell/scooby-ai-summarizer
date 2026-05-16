@@ -2394,7 +2394,7 @@ async function transcribeAudio(f) {
   const formData = new FormData();
   formData.append('file', f);
   formData.append('model', openaiKey ? 'whisper-1' : 'whisper-large-v3');
-  formData.append('task', 'translate');   // auto-detect language, output English
+  if (openaiKey) formData.append('task', 'translate'); // OpenAI only — Groq doesn't support this param
   formData.append('response_format', 'text');
 
   const endpoint = openaiKey
