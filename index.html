@@ -2385,16 +2385,26 @@ async function transcribeAudio(f) {
     toast('Audio transcription needs an OpenAI or Groq key. Groq is free — add it in ⚙ Settings → Groq (Llama 3).', 'warn');
     return;
   }
-  document.getElementById('drop-zone').classList.add('processing');
+
+  const MB = f.size / 1024 / 1024;
+  if (MB > 25) {
+    toast(`File is ${MB.toFixed(1)} MB — max is 25 MB. Please trim or compress the audio first.`, 'warn');
+    showRetryBtn();
+    return;
+  }
+
+  const dz  = document.getElementById('drop-zone');
+  const ta  = document.getElementById('fi-ta');
+  dz.classList.add('processing');
   setFileBadge(f, '🎙️');
-  document.getElementById('fi-ta').value = '';
-  document.getElementById('fi-ta').placeholder = 'Transcribing & translating to English…';
-  toast('Transcribing audio & translating to English…', 'ok');
+  ta.value = '';
+  ta.placeholder = 'Transcribing… this can take up to a minute for long files.';
+  toast('Transcribing audio…', 'ok');
 
   const formData = new FormData();
   formData.append('file', f);
   formData.append('model', openaiKey ? 'whisper-1' : 'whisper-large-v3');
-  if (openaiKey) formData.append('task', 'translate'); // OpenAI only — Groq doesn't support this param
+  if (openaiKey) formData.append('task', 'translate'); // OpenAI only — Groq rejects this param
   formData.append('response_format', 'text');
 
   const endpoint = openaiKey
@@ -2402,24 +2412,40 @@ async function transcribeAudio(f) {
     : 'https://api.groq.com/openai/v1/audio/transcriptions';
   const key = openaiKey || groqKey;
 
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 120000); // 2-min hard timeout
+
   try {
     const res = await fetch(endpoint, {
       method: 'POST',
       headers: { 'Authorization': `Bearer ${key}` },
-      body: formData
+      body: formData,
+      signal: controller.signal,
     });
+    clearTimeout(timeout);
+
     if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      throw new Error(err?.error?.message || res.statusText);
+      const body = await res.json().catch(() => ({}));
+      const msg  = body?.error?.message || body?.message || res.statusText || `HTTP ${res.status}`;
+      if (res.status === 401) throw new Error('Invalid API key — open ⚙ Settings and enter a valid Groq or OpenAI key.');
+      if (res.status === 413) throw new Error('File too large for the API (max 25 MB).');
+      if (res.status === 429) throw new Error('Rate limit reached. Wait a moment then try again, or add your own Groq key in ⚙ Settings.');
+      throw new Error(msg);
     }
+
     const transcript = await res.text();
-    document.getElementById('fi-ta').placeholder = 'File content will appear here…';
-    document.getElementById('drop-zone').classList.remove('processing');
+    ta.placeholder = 'File content will appear here…';
+    dz.classList.remove('processing');
     setFileText(transcript, f, '🎙️');
   } catch(err) {
-    document.getElementById('fi-ta').placeholder = 'File content will appear here…';
-    document.getElementById('drop-zone').classList.remove('processing');
-    toast('Transcription error: ' + err.message, 'warn');
+    clearTimeout(timeout);
+    ta.placeholder = 'File content will appear here…';
+    dz.classList.remove('processing');
+    const msg = err.name === 'AbortError'
+      ? 'Transcription timed out (>2 min). Try a shorter clip or compress the file.'
+      : err.message;
+    ta.value = `⚠️ Transcription failed:\n${msg}`;
+    toast('Transcription failed — see details in the text box above.', 'warn');
     showRetryBtn();
   }
 }
