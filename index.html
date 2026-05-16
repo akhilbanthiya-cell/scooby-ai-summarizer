@@ -252,6 +252,29 @@
     .ir-conf-dot.low  { background:var(--txt3); }
     .ir-conf-pct { font-size:10px; color:var(--txt3); }
 
+    .ir-call-row {
+      display:flex; align-items:center; gap:8px; margin:6px 0 2px;
+      flex-wrap:wrap;
+    }
+    .ir-time-badge {
+      font-size:11px; font-weight:600; padding:3px 8px; border-radius:6px;
+      background:rgba(99,102,241,.12); color:#a5b4fc;
+      border:1px solid rgba(99,102,241,.25);
+    }
+    .ir-join-btn {
+      font-size:11px; font-weight:700; padding:3px 10px; border-radius:6px;
+      background:rgba(16,185,129,.15); color:#34d399;
+      border:1px solid rgba(16,185,129,.3);
+      text-decoration:none; cursor:pointer;
+      transition:background .15s;
+    }
+    .ir-join-btn:hover { background:rgba(16,185,129,.25); }
+    .ir-join-btn.ir-join-details {
+      background:rgba(255,255,255,.05); color:var(--txt2);
+      border-color:var(--border);
+    }
+    .ir-join-btn.ir-join-details:hover { background:rgba(255,255,255,.1); }
+
     .ir-empty { text-align:center; padding:40px 0; color:var(--txt3); font-size:14px; }
     .ir-skeleton {
       height:96px; border-radius:14px;
@@ -3944,6 +3967,19 @@ function irCardHTML(c, today) {
   const confCls  = c.confidence >= 0.8 ? 'high' : c.confidence >= 0.6 ? 'mid' : 'low';
   const isEst    = c.confidence < 0.8;
 
+  const timeStr   = (diff >= 0 && diff <= 7 && c.call_time) ? c.call_time : null;
+  const joinUrl   = (diff >= 0 && diff <= 7) ? (c.webcast_url || c.dial_in_url || null) : null;
+  const annUrl    = c.announcement_url || null;
+
+  const timeBadge = timeStr
+    ? `<span class="ir-time-badge">⏰ ${timeStr}</span>`
+    : '';
+  const joinBtn = joinUrl
+    ? `<a class="ir-join-btn" href="${joinUrl}" target="_blank" rel="noopener">Join Call</a>`
+    : (annUrl && diff >= 0 && diff <= 7
+        ? `<a class="ir-join-btn ir-join-details" href="${annUrl}" target="_blank" rel="noopener">Details</a>`
+        : '');
+
   return `<div class="ir-card ${cardCls}">
   <div class="ir-card-row">
     <div class="ir-avatar ${avCls}">${initials}</div>
@@ -3956,6 +3992,7 @@ function irCardHTML(c, today) {
       <div class="ir-countdown ${cntCls}">${cntTxt}</div>
     </div>
   </div>
+  ${(timeBadge || joinBtn) ? `<div class="ir-call-row">${timeBadge}${joinBtn}</div>` : ''}
   <div class="ir-footer">
     <span class="ir-quarter-chip">${qLabel}</span>
     <div class="ir-badges">
