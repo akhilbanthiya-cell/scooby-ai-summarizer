@@ -1106,6 +1106,63 @@
     }
     .guide-steps li strong { color: var(--txt); }
 
+    /* ── Sector Intelligence ────────────────────────────────────── */
+    .sectors-empty{text-align:center;padding:48px 0;color:var(--txt3);font-size:14px;line-height:1.8}
+    .sectors-empty .si-icon{font-size:36px;margin-bottom:12px}
+    .sector-block{margin-bottom:18px}
+    .sector-hdr{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;
+      border-radius:10px 10px 0 0;background:rgba(99,102,241,.1);border:1px solid rgba(99,102,241,.2)}
+    .sector-hdr-left{display:flex;align-items:center;gap:8px}
+    .sector-name{font-size:13px;font-weight:700;color:var(--txt)}
+    .sector-count-badge{font-size:11px;padding:2px 7px;border-radius:20px;background:rgba(99,102,241,.2);color:#a5b4fc}
+    .sector-report-btn{font-size:11px;font-weight:700;padding:5px 12px;border-radius:7px;
+      background:rgba(16,185,129,.15);color:#34d399;border:1px solid rgba(16,185,129,.3);
+      cursor:pointer;transition:background .15s;white-space:nowrap}
+    .sector-report-btn:hover{background:rgba(16,185,129,.25)}
+    .sector-report-btn:disabled{opacity:.45;cursor:not-allowed}
+    .sector-companies{border:1px solid rgba(99,102,241,.15);border-top:none;border-radius:0 0 10px 10px;overflow:hidden}
+    .sector-co-item{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;
+      border-bottom:1px solid var(--border);cursor:pointer;transition:background .12s}
+    .sector-co-item:last-child{border-bottom:none}
+    .sector-co-item:hover{background:rgba(255,255,255,.04)}
+    .sci-company{font-size:13px;font-weight:600;color:var(--txt)}
+    .sci-title{font-size:11px;color:var(--txt2);margin-top:2px}
+    .sci-date{font-size:11px;color:var(--txt3);white-space:nowrap;margin-left:10px;flex-shrink:0}
+    .sector-report-out{margin-top:10px;padding:16px;border-radius:10px;background:var(--bg2);
+      border:1px solid var(--border);font-size:13px;line-height:1.75;color:var(--txt);display:none}
+    .sector-report-out.show{display:block}
+    .sector-report-out h2{font-size:14px;font-weight:700;color:#a5b4fc;margin:16px 0 6px;padding-bottom:4px;
+      border-bottom:1px solid rgba(165,180,252,.2)}
+    .sector-report-out h3{font-size:13px;font-weight:700;color:var(--txt);margin:12px 0 4px}
+    .sector-report-out strong{color:var(--txt);font-weight:600}
+    .sector-report-out ul{padding-left:18px;margin:4px 0 8px}
+    .sector-report-out li{margin-bottom:4px}
+    .sector-report-out p{margin:5px 0}
+    /* Sector tag bar */
+    .sector-tag-bar{display:none;align-items:center;gap:8px;padding:8px 14px;margin-bottom:8px;
+      border-radius:8px;background:rgba(99,102,241,.08);border:1px solid rgba(99,102,241,.2);font-size:12px}
+    .sector-tag-bar.show{display:flex}
+    .stb-label{color:var(--txt3)}
+    .stb-company{font-weight:700;color:var(--txt)}
+    .stb-dot{color:var(--txt3)}
+    .stb-sector{color:#a5b4fc;font-weight:600}
+    .stb-edit-btn{margin-left:auto;font-size:11px;padding:3px 9px;border-radius:5px;
+      background:rgba(255,255,255,.06);border:1px solid var(--border);color:var(--txt2);cursor:pointer}
+    .stb-edit-btn:hover{background:rgba(255,255,255,.12)}
+    /* Sector edit modal */
+    #sector-edit-overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:1100;
+      display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .2s}
+    #sector-edit-overlay.show{opacity:1;pointer-events:all}
+    #sector-edit-modal{background:var(--card);border:1px solid var(--border);border-radius:16px;
+      padding:24px;width:min(420px,90vw);box-shadow:0 20px 60px rgba(0,0,0,.5)}
+    #sector-edit-modal h3{font-size:15px;font-weight:700;margin:0 0 16px}
+    .sem-row{margin-bottom:13px}
+    .sem-label{font-size:11px;font-weight:600;color:var(--txt2);margin-bottom:5px;text-transform:uppercase;letter-spacing:.5px}
+    .sem-input,.sem-select{width:100%;padding:9px 11px;border-radius:8px;background:var(--bg2);
+      border:1px solid var(--border);color:var(--txt);font-size:13px;box-sizing:border-box}
+    .sem-select option{background:var(--card)}
+    .sem-btns{display:flex;gap:8px;margin-top:18px;justify-content:flex-end}
+
     /* ── Responsive ─────────────────────────────────────────────── */
     @media (max-width: 600px) {
       .stats-row { grid-template-columns: repeat(2,1fr); }
@@ -1156,6 +1213,7 @@
       <button class="tab"        onclick="switchTab('tx',this)">📝 Paste Transcript</button>
       <button class="tab"        onclick="switchTab('fi',this)">📂 Upload File</button>
       <button class="tab"        onclick="switchTab('mic',this)">🎤 Live Mic</button>
+      <button class="tab"        id="tab-btn-sectors" onclick="switchTab('sectors',this)">🏭 Sectors</button>
     </div>
 
     <!-- Investor Calls Tab -->
@@ -1263,6 +1321,12 @@
       </div>
     </div>
 
+    <!-- Sectors Tab -->
+    <div class="tab-panel" id="tab-sectors" style="min-height:200px">
+      <div id="sectors-list"><div class="sectors-empty"><div class="si-icon">🏭</div><div>No sector data yet.</div><div style="margin-top:6px;font-size:12px;color:var(--txt3)">Summarize earnings call transcripts and<br>they'll be auto-tagged and grouped here by sector.</div></div></div>
+    </div>
+
+    <div id="sum-controls">
     <hr />
 
     <!-- Mode selector -->
@@ -1284,6 +1348,7 @@
       <div id="wc-display">Word count: <span>—</span></div>
       <button class="btn btn-primary btn-sum" onclick="doSummarize()" id="sum-btn">✨ Summarize</button>
     </div>
+    </div>
   </div>
 
   <!-- ── Loading ────────────────────────────────────────────────── -->
@@ -1296,6 +1361,15 @@
   <!-- ── Results ────────────────────────────────────────────────── -->
   <div id="results">
     <div class="stats-row" id="stats-row"></div>
+
+    <!-- Sector tag bar (shown after auto-detection) -->
+    <div class="sector-tag-bar" id="sector-tag-bar">
+      <span class="stb-label">🏷️ Tagged:</span>
+      <span class="stb-company" id="stb-company"></span>
+      <span class="stb-dot">·</span>
+      <span class="stb-sector" id="stb-sector"></span>
+      <button class="stb-edit-btn" onclick="openSectorEdit()">✏️ Edit</button>
+    </div>
 
     <!-- Summary cards rendered here by JS -->
     <div id="out"></div>
@@ -1612,6 +1686,11 @@ const S = {
   title: '', thumb: '',
   summary: null, history: [], busy: false, isListening: false,
 };
+// Load persisted history from localStorage on startup
+try {
+  const _saved = JSON.parse(localStorage.getItem('scooby_history') || '[]');
+  S.history = _saved.map(h => ({...h, ts: h.ts ? new Date(h.ts) : new Date()}));
+} catch(_e) { S.history = []; }
 let ytPlayer = null;   // YouTube IFrame API player instance
 
 /* ── Mount IFrame API player ─────────────────────────────────────── */
@@ -1663,6 +1742,10 @@ function switchTab(id, btn) {
   btn.classList.add('active');
   document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
   document.getElementById('tab-' + id).classList.add('active');
+  // Hide summarize controls when Sectors tab is active
+  const sc = document.getElementById('sum-controls');
+  if (sc) sc.style.display = id === 'sectors' ? 'none' : '';
+  if (id === 'sectors') renderSectorsTab();
   if (id === 'ir' && !_irAllCalls.length) loadIRCalls();
   refreshWC();
 }
@@ -2515,7 +2598,11 @@ async function doSummarize() {
     const data = await callAPI(tx, S.mode);
     S.summary = data;
     renderResults(data, wc);
-    pushHistory(data);
+    const _entryId = pushHistory(data);
+    // Hide stale tag bar while new detection runs
+    const _tagBar = document.getElementById('sector-tag-bar');
+    if (_tagBar) _tagBar.classList.remove('show');
+    detectCompanySector(tx, data, _entryId);
     document.getElementById('loading').classList.remove('show');
     document.getElementById('results').classList.add('show');
     setTimeout(() =>
@@ -3500,8 +3587,22 @@ function removeTyping(id) { document.getElementById(id)?.remove(); }
 
 /* ── History ─────────────────────────────────────────────────────── */
 function pushHistory(d) {
-  S.history.unshift({ title:d.title||'Untitled', mode:S.mode, ts:new Date(), data:d, thumb:S.thumb });
-  if (S.history.length > 5) S.history.pop();
+  const entry = { id: Date.now().toString(), title:d.title||'Untitled', mode:S.mode, ts:new Date(), data:d, thumb:S.thumb, company:null, sector:null };
+  S.history.unshift(entry);
+  if (S.history.length > 100) S.history.pop();
+  _saveHistory();
+  renderHistory();
+  return entry.id;
+}
+function _saveHistory() {
+  try { localStorage.setItem('scooby_history', JSON.stringify(S.history)); } catch(_e) {}
+  document.dispatchEvent(new CustomEvent('scooby:historySaved'));
+}
+function updateHistoryEntry(id, updates) {
+  const idx = S.history.findIndex(h => h.id === id);
+  if (idx === -1) return;
+  S.history[idx] = {...S.history[idx], ...updates};
+  _saveHistory();
   renderHistory();
 }
 function renderHistory() {
@@ -3848,6 +3949,198 @@ document.addEventListener('scooby:historySaved', () => {
   const token = localStorage.getItem('scooby_drive_token');
   if (token) pushHistoryToDrive(token);
 });
+
+/* ══════════════════════════════════════════════════════
+   SECTOR INTELLIGENCE
+══════════════════════════════════════════════════════ */
+const SECTORS = [
+  'Banking & Finance','IT & Technology','Pharmaceuticals','Auto & EV',
+  'FMCG & Consumer','Energy & Oil & Gas','Infrastructure & Real Estate',
+  'Telecom','Metals & Mining','Chemicals','Insurance','Healthcare',
+  'Media & Entertainment','Retail','Agri & Food','Aerospace & Defence','Other',
+];
+
+/* ── Simple API call (no retry, short output) ───────────────── */
+async function callAPISimple(system, user, maxTokens) {
+  const prov = PROVIDERS[S.provider] || PROVIDERS.mistral;
+  const key  = getApiKey();
+  if (!key) throw new Error('No API key configured');
+
+  if (prov.format === 'anthropic') {
+    const { default: Anthropic } = await import('https://esm.sh/@anthropic-ai/sdk');
+    const client = new Anthropic({ apiKey: key, dangerouslyAllowBrowser: true });
+    const msg = await client.messages.create({
+      model: prov.model, max_tokens: maxTokens,
+      system, messages: [{ role:'user', content: user }],
+    });
+    return msg.content[0].text;
+  }
+  if (prov.format === 'gemini') {
+    const r = await fetch(`${prov.endpoint}?key=${encodeURIComponent(key)}`, {
+      method:'POST', headers:{'content-type':'application/json'},
+      body: JSON.stringify({ contents:[{role:'user',parts:[{text:system+'\n\n'+user}]}], generationConfig:{maxOutputTokens:maxTokens} }),
+    });
+    if (!r.ok) throw new Error(`Gemini ${r.status}`);
+    const d = await r.json();
+    return d.candidates[0].content.parts[0].text;
+  }
+  if (prov.format === 'cohere') {
+    const r = await fetch(prov.endpoint, {
+      method:'POST',
+      headers:{'content-type':'application/json','Authorization':`Bearer ${key}`},
+      body: JSON.stringify({ model:prov.model, messages:[{role:'system',content:system},{role:'user',content:user}] }),
+    });
+    if (!r.ok) throw new Error(`Cohere ${r.status}`);
+    const d = await r.json();
+    return d.message?.content[0]?.text || '';
+  }
+  // OpenAI-compatible
+  const r = await fetch(prov.endpoint, {
+    method:'POST',
+    headers:{'content-type':'application/json','Authorization':`Bearer ${key}`},
+    body: JSON.stringify({ model:prov.model, max_tokens:maxTokens, messages:[{role:'system',content:system},{role:'user',content:user}] }),
+  });
+  if (!r.ok) throw new Error(`API ${r.status}`);
+  const d = await r.json();
+  return d.choices[0].message.content;
+}
+
+/* ── Auto-detect company + sector from a summary ────────────── */
+async function detectCompanySector(tx, summary, entryId) {
+  try {
+    const context = [summary.title, summary.tldr, summary.oneLiner, tx.slice(0,1500)].filter(Boolean).join('\n\n');
+    const sys = `You are an expert at identifying Indian listed companies and their sectors from earnings call content.
+Extract the company name and its sector. Return ONLY valid JSON with no markdown: {"company":"exact company name","sector":"sector name"}
+Valid sectors (pick the closest): ${SECTORS.join(', ')}`;
+    const raw  = await callAPISimple(sys, context, 150);
+    const meta = JSON.parse(raw.replace(/```[a-z]*|```/g,'').trim());
+    if (!meta.company || !meta.sector) return;
+
+    updateHistoryEntry(entryId, { company: meta.company, sector: meta.sector });
+
+    const bar = document.getElementById('sector-tag-bar');
+    if (bar) {
+      document.getElementById('stb-company').textContent = meta.company;
+      document.getElementById('stb-sector').textContent  = meta.sector;
+      bar.dataset.entryId = entryId;
+      bar.classList.add('show');
+    }
+  } catch(e) { console.warn('[Scooby] sector detect:', e.message); }
+}
+
+/* ── Sector edit modal ──────────────────────────────────────── */
+let _sectorEditId = null;
+function openSectorEdit() {
+  const bar   = document.getElementById('sector-tag-bar');
+  _sectorEditId = bar?.dataset.entryId || null;
+  const entry = S.history.find(h => h.id === _sectorEditId) || {};
+  document.getElementById('sem-company').value = entry.company || '';
+  const sel = document.getElementById('sem-sector');
+  sel.innerHTML = SECTORS.map(s => `<option value="${s}"${s===entry.sector?' selected':''}>${s}</option>`).join('');
+  document.getElementById('sector-edit-overlay').classList.add('show');
+}
+function closeSectorEdit() { document.getElementById('sector-edit-overlay').classList.remove('show'); }
+function saveSectorEdit() {
+  const company = document.getElementById('sem-company').value.trim();
+  const sector  = document.getElementById('sem-sector').value;
+  if (!company || !sector) { toast('Please fill in both fields.','warn'); return; }
+  if (_sectorEditId) updateHistoryEntry(_sectorEditId, { company, sector });
+  document.getElementById('stb-company').textContent = company;
+  document.getElementById('stb-sector').textContent  = sector;
+  renderSectorsTab();
+  closeSectorEdit();
+  toast('✅ Sector updated!','ok');
+}
+
+/* ── Sectors tab renderer ───────────────────────────────────── */
+function renderSectorsTab() {
+  const el = document.getElementById('sectors-list');
+  if (!el) return;
+  const bySector = {};
+  S.history.forEach((h, i) => {
+    if (!h.sector || !h.company) return;
+    if (!bySector[h.sector]) bySector[h.sector] = [];
+    bySector[h.sector].push({...h, _idx: i});
+  });
+  const sectors = Object.keys(bySector);
+  if (!sectors.length) {
+    el.innerHTML = `<div class="sectors-empty"><div class="si-icon">🏭</div><div>No sector data yet.</div><div style="margin-top:6px;font-size:12px;color:var(--txt3)">Summarize earnings call transcripts and<br>they'll be auto-tagged and grouped here by sector.</div></div>`;
+    return;
+  }
+  el.innerHTML = sectors.sort().map(sector => {
+    const entries = bySector[sector];
+    const sid = sector.replace(/[^a-zA-Z0-9]/g,'-');
+    return `<div class="sector-block">
+      <div class="sector-hdr">
+        <div class="sector-hdr-left">
+          <span class="sector-name">🏭 ${esc(sector)}</span>
+          <span class="sector-count-badge">${entries.length} call${entries.length>1?'s':''}</span>
+        </div>
+        <button class="sector-report-btn" id="srb-${sid}" onclick="generateSectorReport(${JSON.stringify(sector)},'${sid}')">📊 Generate Intelligence Report</button>
+      </div>
+      <div class="sector-companies">
+        ${entries.map(h => `<div class="sector-co-item" onclick="loadHistItem(${h._idx})">
+          <div><div class="sci-company">${esc(h.company)}</div><div class="sci-title">${esc(h.title||'Summary')}</div></div>
+          <div class="sci-date">${relTime(new Date(h.ts))}</div>
+        </div>`).join('')}
+      </div>
+      <div class="sector-report-out" id="sro-${sid}"></div>
+    </div>`;
+  }).join('');
+}
+
+/* ── Markdown → safe HTML (for report display) ──────────────── */
+function md2html(md) {
+  const lines = md.split('\n');
+  let html = '', inUl = false;
+  for (const line of lines) {
+    const s = line.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    const f = s.replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>').replace(/\*([^*\n]+?)\*/g,'<em>$1</em>');
+    if (/^## /.test(line))      { if(inUl){html+='</ul>';inUl=false;} html+=`<h2>${f.slice(3)}</h2>`; }
+    else if (/^### /.test(line)){ if(inUl){html+='</ul>';inUl=false;} html+=`<h3>${f.slice(4)}</h3>`; }
+    else if (/^[-•*] /.test(line)){ if(!inUl){html+='<ul>';inUl=true;} html+=`<li>${f.slice(2)}</li>`; }
+    else if (/^\d+\. /.test(line)){ if(!inUl){html+='<ul>';inUl=true;} html+=`<li>${f.replace(/^\d+\. /,'')}</li>`; }
+    else if (line.trim()==='')  { if(inUl){html+='</ul>';inUl=false;} html+='<br>'; }
+    else                        { if(inUl){html+='</ul>';inUl=false;} html+=`<p>${f}</p>`; }
+  }
+  if (inUl) html += '</ul>';
+  return html;
+}
+
+/* ── Generate sector intelligence report ────────────────────── */
+async function generateSectorReport(sector, sid) {
+  const entries = S.history.filter(h => h.sector === sector && h.data);
+  if (!entries.length) return;
+  const btn = document.getElementById('srb-' + sid);
+  const out = document.getElementById('sro-' + sid);
+  if (!btn || !out) return;
+
+  btn.disabled = true;
+  btn.textContent = '⏳ Generating…';
+  out.classList.add('show');
+  out.innerHTML = '<div style="display:flex;align-items:center;gap:8px;color:var(--txt2);padding:8px 0"><div class="spin" style="width:18px;height:18px;border-width:2px"></div> Analyzing all company calls in this sector…</div>';
+
+  const summaryBlocks = entries.map(h => {
+    const d = h.data;
+    const dt = new Date(h.ts).toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'});
+    return `### ${h.company} (${dt})\n**Summary:** ${d.tldr||d.oneLiner||'-'}\n**Key Points:** ${(d.keyPoints||[]).join(' | ')}\n**Sentiment:** ${d.sentiment||'N/A'}`;
+  }).join('\n\n---\n\n');
+
+  const sys = `You are a senior equity analyst covering Indian equity markets. Write a sector intelligence report in Markdown.
+Use ## for main section headings, ### for company sub-headings, **bold** for key figures and company names. Be specific, analytical, and data-driven.`;
+
+  const user = `Below are earnings call summaries for ${entries.length} companies in the **${sector}** sector.\n\nGenerate a comprehensive Sector Intelligence Report with these sections:\n\n## 1. Sector Overview\nKey macro trends, tailwinds, headwinds, and overall sector momentum.\n\n## 2. Company Highlights\nFor each company: key results, guidance, and management tone.\n\n## 3. Leaders\nCompanies showing strong performance or positive momentum — with specific reasons.\n\n## 4. Laggards\nCompanies facing challenges or underperforming — with specific reasons.\n\n## 5. Cross-Sector Themes\nRecurring themes across multiple companies in this sector.\n\n## 6. Outlook\nWhere the sector is headed based on management commentary and guidance.\n\n---\n\n${summaryBlocks}`;
+
+  try {
+    const report = await callAPISimple(sys, user, 2048);
+    out.innerHTML = md2html(report);
+    btn.textContent = '🔄 Regenerate Report';
+  } catch(e) {
+    out.innerHTML = `<p style="color:var(--err)">❌ Failed to generate: ${esc(e.message)}</p>`;
+    btn.textContent = '📊 Generate Intelligence Report';
+  }
+  btn.disabled = false;
+}
 </script>
 
 <script>
@@ -4032,6 +4325,25 @@ document.addEventListener('DOMContentLoaded', () => loadIRCalls());
         <button onclick="igCopyImage()"         style="background:rgba(255,255,255,.1);color:#fff;border:none;padding:8px 16px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:600" id="ig-copy-img-btn">📋 Copy Image</button>
       </div>
       <div style="font-size:11px;color:#64748b;margin-top:10px">Tip: Copy the image first, then paste it directly into your post.</div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Sector Edit Modal ───────────────────────────────────────── -->
+<div id="sector-edit-overlay" onclick="if(event.target===this)closeSectorEdit()">
+  <div id="sector-edit-modal">
+    <h3>🏷️ Edit Company & Sector</h3>
+    <div class="sem-row">
+      <div class="sem-label">Company Name</div>
+      <input type="text" id="sem-company" class="sem-input" placeholder="e.g. Infosys Ltd" />
+    </div>
+    <div class="sem-row">
+      <div class="sem-label">Sector</div>
+      <select id="sem-sector" class="sem-select"></select>
+    </div>
+    <div class="sem-btns">
+      <button class="btn btn-secondary" onclick="closeSectorEdit()">Cancel</button>
+      <button class="btn btn-primary" onclick="saveSectorEdit()">💾 Save</button>
     </div>
   </div>
 </div>
