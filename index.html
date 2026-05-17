@@ -4068,7 +4068,7 @@ Extract the company name and its sector. Return ONLY valid JSON with no markdown
 Valid sectors (pick the closest): ${SECTORS.join(', ')}`;
     const raw  = await callAPISimple(sys, context, 150);
     const meta = JSON.parse(raw.replace(/```[a-z]*|```/g,'').trim());
-    if (!meta.company || !meta.sector) return;
+    if (!meta.company || !meta.sector) { showManualSectorEntry(entryId, tx); return; }
 
     updateHistoryEntry(entryId, { company: meta.company, sector: meta.sector, transcript: tx });
 
@@ -4086,16 +4086,32 @@ Valid sectors (pick the closest): ${SECTORS.join(', ')}`;
     toast(`✅ Saved to ${meta.sector} repository`, 'ok');
   } catch(e) {
     console.warn('[Scooby] sector detect:', e.message);
-    const btn = document.getElementById('stb-save-btn');
-    if (btn) { btn.disabled = false; btn.textContent = 'Retry'; }
-    toast('Could not detect sector — please try again.', 'warn');
+    showManualSectorEntry(entryId, tx);
   }
 }
 
 /* ── Sector edit modal ──────────────────────────────────────── */
-let _sectorEditId = null;
+let _sectorEditId   = null;
+let _sectorManualTx = null;
+
+function showManualSectorEntry(entryId, tx) {
+  _sectorEditId   = entryId;
+  _sectorManualTx = tx;
+  document.getElementById('sem-title').textContent  = "Couldn't identify sector — please select one";
+  document.getElementById('sem-hint').style.display = 'block';
+  document.getElementById('sem-company').value = '';
+  const sel = document.getElementById('sem-sector');
+  sel.innerHTML = SECTORS.map(s => `<option value="${s}">${s}</option>`).join('');
+  const btn = document.getElementById('stb-save-btn');
+  if (btn) { btn.disabled = false; btn.textContent = 'Select Manually'; }
+  document.getElementById('sector-edit-overlay').classList.add('show');
+}
+
 function openSectorEdit() {
-  const bar   = document.getElementById('sector-tag-bar');
+  _sectorManualTx = null;
+  document.getElementById('sem-title').textContent  = '🏷️ Edit Company & Sector';
+  document.getElementById('sem-hint').style.display = 'none';
+  const bar = document.getElementById('sector-tag-bar');
   _sectorEditId = bar?.dataset.entryId || null;
   const entry = S.history.find(h => h.id === _sectorEditId) || {};
   document.getElementById('sem-company').value = entry.company || '';
@@ -4103,17 +4119,33 @@ function openSectorEdit() {
   sel.innerHTML = SECTORS.map(s => `<option value="${s}"${s===entry.sector?' selected':''}>${s}</option>`).join('');
   document.getElementById('sector-edit-overlay').classList.add('show');
 }
+
 function closeSectorEdit() { document.getElementById('sector-edit-overlay').classList.remove('show'); }
+
 function saveSectorEdit() {
   const company = document.getElementById('sem-company').value.trim();
   const sector  = document.getElementById('sem-sector').value;
-  if (!company || !sector) { toast('Please fill in both fields.','warn'); return; }
-  if (_sectorEditId) updateHistoryEntry(_sectorEditId, { company, sector });
-  document.getElementById('stb-company').textContent = company;
-  document.getElementById('stb-sector').textContent  = sector;
+  if (!company || !sector) { toast('Please fill in both fields.', 'warn'); return; }
+
+  const updates = { company, sector };
+  if (_sectorManualTx) updates.transcript = _sectorManualTx;
+  if (_sectorEditId) updateHistoryEntry(_sectorEditId, updates);
+
+  const bar = document.getElementById('sector-tag-bar');
+  if (bar) {
+    document.getElementById('stb-company').textContent  = company;
+    document.getElementById('stb-sector').textContent   = sector;
+    bar.dataset.entryId = _sectorEditId;
+    document.getElementById('stb-prompt').style.display = 'none';
+    document.getElementById('stb-saved').style.display  = 'flex';
+    bar.classList.add('show');
+  }
+
+  _repoPending    = null;
+  _sectorManualTx = null;
   renderSectorsTab();
   closeSectorEdit();
-  toast('✅ Sector updated!','ok');
+  toast(`✅ Saved to ${sector} repository`, 'ok');
 }
 
 /* ── Sectors tab renderer ───────────────────────────────────── */
@@ -4411,7 +4443,10 @@ document.addEventListener('DOMContentLoaded', () => loadIRCalls());
 <!-- ── Sector Edit Modal ───────────────────────────────────────── -->
 <div id="sector-edit-overlay" onclick="if(event.target===this)closeSectorEdit()">
   <div id="sector-edit-modal">
-    <h3>🏷️ Edit Company & Sector</h3>
+    <h3 id="sem-title">🏷️ Edit Company & Sector</h3>
+    <div id="sem-hint" style="display:none;padding:8px 12px;border-radius:7px;background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.2);color:#FCD34D;font-size:12px;margin-bottom:14px;line-height:1.5">
+      ⚠️ AI couldn't detect the sector automatically. Please enter the company name and pick the correct sector below.
+    </div>
     <div class="sem-row">
       <div class="sem-label">Company Name</div>
       <input type="text" id="sem-company" class="sem-input" placeholder="e.g. Infosys Ltd" />
