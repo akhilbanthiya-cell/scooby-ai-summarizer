@@ -1121,13 +1121,22 @@
     .sector-report-btn:hover{background:rgba(16,185,129,.25)}
     .sector-report-btn:disabled{opacity:.45;cursor:not-allowed}
     .sector-companies{border:1px solid rgba(99,102,241,.15);border-top:none;border-radius:0 0 10px 10px;overflow:hidden}
-    .sector-co-item{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;
+    .sector-co-item{display:flex;align-items:center;flex-wrap:wrap;justify-content:space-between;padding:10px 14px;
       border-bottom:1px solid var(--border);cursor:pointer;transition:background .12s}
     .sector-co-item:last-child{border-bottom:none}
     .sector-co-item:hover{background:rgba(255,255,255,.04)}
     .sci-company{font-size:13px;font-weight:600;color:var(--txt)}
     .sci-title{font-size:11px;color:var(--txt2);margin-top:2px}
     .sci-date{font-size:11px;color:var(--txt3);white-space:nowrap;margin-left:10px;flex-shrink:0}
+    .sci-tx-btn{font-size:10px;font-weight:600;padding:2px 8px;border-radius:5px;
+      background:rgba(255,255,255,.05);border:1px solid var(--border);color:var(--txt3);
+      cursor:pointer;white-space:nowrap}
+    .sci-tx-btn:hover{background:rgba(255,255,255,.1);color:var(--txt2)}
+    .sci-tx-box{display:none;width:100%;margin-top:10px;padding:12px;border-radius:8px;
+      background:rgba(0,0,0,.3);border:1px solid var(--border);
+      font-size:12px;color:var(--txt2);line-height:1.7;white-space:pre-wrap;
+      max-height:220px;overflow-y:auto}
+    .sci-tx-box.open{display:block}
     .sector-report-out{margin-top:10px;padding:16px;border-radius:10px;background:var(--bg2);
       border:1px solid var(--border);font-size:13px;line-height:1.75;color:var(--txt);display:none}
     .sector-report-out.show{display:block}
@@ -1138,10 +1147,19 @@
     .sector-report-out ul{padding-left:18px;margin:4px 0 8px}
     .sector-report-out li{margin-bottom:4px}
     .sector-report-out p{margin:5px 0}
-    /* Sector tag bar */
-    .sector-tag-bar{display:none;align-items:center;gap:8px;padding:8px 14px;margin-bottom:8px;
+    /* Sector Repository bar */
+    .sector-tag-bar{display:none;align-items:center;gap:8px;padding:10px 14px;margin-bottom:8px;
       border-radius:8px;background:rgba(99,102,241,.08);border:1px solid rgba(99,102,241,.2);font-size:12px}
     .sector-tag-bar.show{display:flex}
+    .stb-prompt{display:flex;align-items:center;gap:8px;width:100%}
+    .stb-prompt-text{color:var(--txt2);flex:1;font-weight:500}
+    .stb-save-btn{padding:4px 14px;border-radius:6px;background:linear-gradient(135deg,var(--accent),#A855F7);
+      color:#fff;border:none;font-size:11px;font-weight:700;cursor:pointer;transition:opacity .15s;white-space:nowrap}
+    .stb-save-btn:hover{opacity:.85}
+    .stb-save-btn:disabled{opacity:.5;cursor:not-allowed}
+    .stb-dismiss-btn{background:none;border:none;color:var(--txt3);cursor:pointer;font-size:15px;padding:0 2px;line-height:1}
+    .stb-dismiss-btn:hover{color:var(--txt)}
+    .stb-saved{display:none;align-items:center;gap:8px;width:100%}
     .stb-label{color:var(--txt3)}
     .stb-company{font-weight:700;color:var(--txt)}
     .stb-dot{color:var(--txt3)}
@@ -1362,13 +1380,23 @@
   <div id="results">
     <div class="stats-row" id="stats-row"></div>
 
-    <!-- Sector tag bar (shown after auto-detection) -->
+    <!-- Sector Repository bar -->
     <div class="sector-tag-bar" id="sector-tag-bar">
-      <span class="stb-label">🏷️ Tagged:</span>
-      <span class="stb-company" id="stb-company"></span>
-      <span class="stb-dot">·</span>
-      <span class="stb-sector" id="stb-sector"></span>
-      <button class="stb-edit-btn" onclick="openSectorEdit()">✏️ Edit</button>
+      <!-- Prompt state -->
+      <div class="stb-prompt" id="stb-prompt">
+        <span>📁</span>
+        <span class="stb-prompt-text">Add this to the Sector Repository?</span>
+        <button class="stb-save-btn" id="stb-save-btn" onclick="saveToRepo()">Save to Repo</button>
+        <button class="stb-dismiss-btn" onclick="dismissRepoPrompt()" title="Dismiss">✕</button>
+      </div>
+      <!-- Saved state -->
+      <div class="stb-saved" id="stb-saved">
+        <span class="stb-label">✅ Saved:</span>
+        <span class="stb-company" id="stb-company"></span>
+        <span class="stb-dot">·</span>
+        <span class="stb-sector" id="stb-sector"></span>
+        <button class="stb-edit-btn" onclick="openSectorEdit()">✏️ Edit</button>
+      </div>
     </div>
 
     <!-- Summary cards rendered here by JS -->
@@ -2599,10 +2627,7 @@ async function doSummarize() {
     S.summary = data;
     renderResults(data, wc);
     const _entryId = pushHistory(data);
-    // Hide stale tag bar while new detection runs
-    const _tagBar = document.getElementById('sector-tag-bar');
-    if (_tagBar) _tagBar.classList.remove('show');
-    detectCompanySector(tx, data, _entryId);
+    showRepoPrompt(tx, data, _entryId);
     document.getElementById('loading').classList.remove('show');
     document.getElementById('results').classList.add('show');
     setTimeout(() =>
@@ -4005,6 +4030,35 @@ async function callAPISimple(system, user, maxTokens) {
   return d.choices[0].message.content;
 }
 
+/* ── Sector Repository prompt ───────────────────────────────── */
+let _repoPending = null;
+
+function showRepoPrompt(tx, data, entryId) {
+  _repoPending = { tx, data, entryId };
+  const bar = document.getElementById('sector-tag-bar');
+  const btn = document.getElementById('stb-save-btn');
+  document.getElementById('stb-prompt').style.display = 'flex';
+  document.getElementById('stb-saved').style.display  = 'none';
+  btn.disabled    = false;
+  btn.textContent = 'Save to Repo';
+  bar.dataset.entryId = entryId;
+  bar.classList.add('show');
+}
+
+function dismissRepoPrompt() {
+  document.getElementById('sector-tag-bar').classList.remove('show');
+  _repoPending = null;
+}
+
+async function saveToRepo() {
+  if (!_repoPending) return;
+  const btn = document.getElementById('stb-save-btn');
+  btn.disabled    = true;
+  btn.textContent = '⏳ Detecting…';
+  const { tx, data, entryId } = _repoPending;
+  await detectCompanySector(tx, data, entryId);
+}
+
 /* ── Auto-detect company + sector from a summary ────────────── */
 async function detectCompanySector(tx, summary, entryId) {
   try {
@@ -4016,16 +4070,26 @@ Valid sectors (pick the closest): ${SECTORS.join(', ')}`;
     const meta = JSON.parse(raw.replace(/```[a-z]*|```/g,'').trim());
     if (!meta.company || !meta.sector) return;
 
-    updateHistoryEntry(entryId, { company: meta.company, sector: meta.sector });
+    updateHistoryEntry(entryId, { company: meta.company, sector: meta.sector, transcript: tx });
 
     const bar = document.getElementById('sector-tag-bar');
     if (bar) {
-      document.getElementById('stb-company').textContent = meta.company;
-      document.getElementById('stb-sector').textContent  = meta.sector;
+      document.getElementById('stb-company').textContent  = meta.company;
+      document.getElementById('stb-sector').textContent   = meta.sector;
       bar.dataset.entryId = entryId;
+      document.getElementById('stb-prompt').style.display = 'none';
+      document.getElementById('stb-saved').style.display  = 'flex';
       bar.classList.add('show');
     }
-  } catch(e) { console.warn('[Scooby] sector detect:', e.message); }
+    _repoPending = null;
+    renderSectorsTab();
+    toast(`✅ Saved to ${meta.sector} repository`, 'ok');
+  } catch(e) {
+    console.warn('[Scooby] sector detect:', e.message);
+    const btn = document.getElementById('stb-save-btn');
+    if (btn) { btn.disabled = false; btn.textContent = 'Retry'; }
+    toast('Could not detect sector — please try again.', 'warn');
+  }
 }
 
 /* ── Sector edit modal ──────────────────────────────────────── */
@@ -4079,14 +4143,29 @@ function renderSectorsTab() {
         <button class="sector-report-btn" id="srb-${sid}" onclick="generateSectorReport(${JSON.stringify(sector)},'${sid}')">📊 Generate Intelligence Report</button>
       </div>
       <div class="sector-companies">
-        ${entries.map(h => `<div class="sector-co-item" onclick="loadHistItem(${h._idx})">
-          <div><div class="sci-company">${esc(h.company)}</div><div class="sci-title">${esc(h.title||'Summary')}</div></div>
-          <div class="sci-date">${relTime(new Date(h.ts))}</div>
+        ${entries.map(h => `<div class="sector-co-item">
+          <div class="sci-main" onclick="loadHistItem(${h._idx})" style="cursor:pointer;flex:1">
+            <div class="sci-company">${esc(h.company)}</div>
+            <div class="sci-title">${esc(h.title||'Summary')}</div>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;flex-shrink:0">
+            ${h.transcript ? `<button class="sci-tx-btn" onclick="toggleSciTx(this,'sci-tx-${h.id}')">📄 Transcript</button>` : ''}
+            <div class="sci-date">${relTime(new Date(h.ts))}</div>
+          </div>
+          ${h.transcript ? `<div class="sci-tx-box" id="sci-tx-${h.id}">${esc(h.transcript)}</div>` : ''}
         </div>`).join('')}
       </div>
       <div class="sector-report-out" id="sro-${sid}"></div>
     </div>`;
   }).join('');
+}
+
+/* ── Toggle transcript box in sector repo ───────────────────── */
+function toggleSciTx(btn, boxId) {
+  const box = document.getElementById(boxId);
+  if (!box) return;
+  const open = box.classList.toggle('open');
+  btn.textContent = open ? '📄 Hide' : '📄 Transcript';
 }
 
 /* ── Markdown → safe HTML (for report display) ──────────────── */
