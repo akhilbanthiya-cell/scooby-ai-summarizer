@@ -4459,7 +4459,7 @@ function irCardHTML(c, today) {
     : (annUrl && diff >= 0 && diff <= 7
         ? `<a class="ir-join-btn ir-join-details" href="${annUrl}" target="_blank" rel="noopener">Details</a>`
         : '');
-  const dialInBtn = `<button class="ir-dial-btn" onclick="openDialIn(${JSON.stringify(c.id)})">📞 Dial In</button>`;
+  const dialInBtn = `<button class="ir-dial-btn" onclick="openDialIn(${_irAllCalls.indexOf(c)})">📞 Dial In</button>`;
 
   return `<div class="ir-card ${cardCls}">
   <div class="ir-card-row">
@@ -4498,10 +4498,10 @@ document.addEventListener('DOMContentLoaded', () => loadIRCalls());
 ══════════════════════════════════════════════════════ */
 let _dialInCallId = null;
 
-function openDialIn(callId) {
-  const c = _irAllCalls.find(x => x.id === callId);
+function openDialIn(idx) {
+  const c = _irAllCalls[idx];
   if (!c) return;
-  _dialInCallId = callId;
+  _dialInCallId = c.id;
 
   document.getElementById('dialin-company').textContent = c.company_name;
   const dt = c.call_date
