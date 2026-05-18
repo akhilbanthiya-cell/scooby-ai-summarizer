@@ -286,6 +286,82 @@
     .ir-footer-meta a, .ir-footer-meta span { font-size:11px; color:var(--txt3); text-decoration:none; }
     .ir-footer-meta a:hover { color:var(--txt2); }
 
+    /* ── Dial-In button on IR cards ─────────────────────────────── */
+    .ir-dial-btn {
+      font-size:11px; font-weight:700; padding:3px 10px; border-radius:6px;
+      background:rgba(16,185,129,.12); color:#34d399;
+      border:1px solid rgba(16,185,129,.25); cursor:pointer;
+      transition:background .15s; font-family:inherit;
+    }
+    .ir-dial-btn:hover { background:rgba(16,185,129,.24); }
+
+    /* ── Dial-In Modal ───────────────────────────────────────────── */
+    #dialin-overlay {
+      position:fixed; inset:0; background:rgba(0,0,0,.65); z-index:1200;
+      display:flex; align-items:center; justify-content:center;
+      opacity:0; pointer-events:none; transition:opacity .2s;
+    }
+    #dialin-overlay.show { opacity:1; pointer-events:all; }
+    #dialin-modal {
+      background:#0F172A; border:1px solid rgba(255,255,255,.1);
+      border-radius:18px; width:min(460px,96vw);
+      box-shadow:0 24px 80px rgba(0,0,0,.6); overflow:hidden;
+    }
+    .dialin-hdr {
+      display:flex; align-items:flex-start; justify-content:space-between;
+      padding:18px 20px 14px; border-bottom:1px solid rgba(255,255,255,.08);
+    }
+    .dialin-company { font-size:15px; font-weight:800; color:#fff; }
+    .dialin-meta    { font-size:12px; color:#64748B; margin-top:3px; }
+    .dialin-close   { background:none; border:none; color:#64748B; cursor:pointer; font-size:18px; line-height:1; padding:0 4px; }
+    .dialin-close:hover { color:#fff; }
+    .dialin-body { padding:16px 20px; display:flex; flex-direction:column; gap:12px; }
+    .dialin-step {
+      background:rgba(255,255,255,.03); border:1px solid rgba(255,255,255,.07);
+      border-radius:12px; padding:13px 14px;
+    }
+    .dialin-step-hdr { display:flex; align-items:center; gap:8px; margin-bottom:10px; }
+    .dialin-step-num {
+      width:20px; height:20px; border-radius:50%; flex-shrink:0;
+      display:flex; align-items:center; justify-content:center;
+      font-size:11px; font-weight:800;
+      background:rgba(124,58,237,.25); color:#a5b4fc;
+    }
+    .dialin-step-lbl { font-size:12px; font-weight:600; color:#94A3B8; flex:1; }
+    .dialin-step-copy {
+      font-size:10px; font-weight:600; padding:2px 8px; border-radius:5px;
+      background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.1);
+      color:#64748B; cursor:pointer; font-family:inherit;
+    }
+    .dialin-step-copy:hover { background:rgba(255,255,255,.12); color:#94A3B8; }
+    .dialin-input-row { display:flex; align-items:center; gap:6px; }
+    .dialin-input {
+      flex:1; background:rgba(0,0,0,.4); border:1px solid rgba(255,255,255,.1);
+      border-radius:8px; color:#E2E8F0; padding:8px 11px;
+      font-size:14px; font-family:inherit; outline:none; transition:border-color .2s;
+    }
+    .dialin-input:focus { border-color:rgba(124,58,237,.5); }
+    .dialin-hash { font-size:17px; font-weight:800; color:#a5b4fc; flex-shrink:0; }
+    .dialin-preview {
+      padding:9px 13px; border-radius:8px;
+      background:rgba(0,0,0,.3); border:1px solid rgba(255,255,255,.06);
+      font-size:11px; color:#64748B; line-height:1.6;
+    }
+    .dialin-preview span { color:#a5b4fc; font-family:monospace; font-size:12px; word-break:break-all; }
+    .dialin-ftr { display:flex; gap:8px; padding:0 20px 18px; }
+    .dialin-btn-primary {
+      flex:1; padding:11px; border-radius:10px; font-size:13px; font-weight:700;
+      background:linear-gradient(135deg,#10B981,#059669); color:#fff;
+      border:none; cursor:pointer; transition:opacity .15s;
+    }
+    .dialin-btn-primary:hover { opacity:.88; }
+    .dialin-btn-secondary {
+      padding:11px 16px; border-radius:10px; font-size:13px; font-weight:600;
+      background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.1);
+      color:#94A3B8; cursor:pointer; transition:all .15s; font-family:inherit;
+    }
+    .dialin-btn-secondary:hover { background:rgba(255,255,255,.1); color:#fff; }
+
     /* ── Tabs ───────────────────────────────────────────────────── */
     .tabs {
       display: flex; gap: 3px;
@@ -4383,6 +4459,7 @@ function irCardHTML(c, today) {
     : (annUrl && diff >= 0 && diff <= 7
         ? `<a class="ir-join-btn ir-join-details" href="${annUrl}" target="_blank" rel="noopener">Details</a>`
         : '');
+  const dialInBtn = `<button class="ir-dial-btn" onclick="openDialIn(${JSON.stringify(c.id)})">📞 Dial In</button>`;
 
   return `<div class="ir-card ${cardCls}">
   <div class="ir-card-row">
@@ -4396,7 +4473,7 @@ function irCardHTML(c, today) {
       <div class="ir-countdown ${cntCls}">${cntTxt}</div>
     </div>
   </div>
-  ${(timeBadge || joinBtn) ? `<div class="ir-call-row">${timeBadge}${joinBtn}</div>` : ''}
+  <div class="ir-call-row">${timeBadge}${joinBtn}${dialInBtn}</div>
   <div class="ir-footer">
     <span class="ir-quarter-chip">${qLabel}</span>
     <div class="ir-badges">
@@ -4410,6 +4487,125 @@ function irCardHTML(c, today) {
 
 /* Auto-load when page is ready */
 document.addEventListener('DOMContentLoaded', () => loadIRCalls());
+
+/* ══════════════════════════════════════════════════════
+   DIAL-IN ASSISTANT
+   Tools used:
+     • tel: URI scheme with DTMF pause encoding (,,)
+       → on mobile: auto-sequences number → passcode# → pin#
+     • Clipboard API → per-step and all-steps copy
+     • localStorage → remembers entered values per call ID
+══════════════════════════════════════════════════════ */
+let _dialInCallId = null;
+
+function openDialIn(callId) {
+  const c = _irAllCalls.find(x => x.id === callId);
+  if (!c) return;
+  _dialInCallId = callId;
+
+  document.getElementById('dialin-company').textContent = c.company_name;
+  const dt = c.call_date
+    ? new Date(c.call_date).toLocaleDateString('en-IN', { day:'numeric', month:'short', year:'numeric' })
+    : '';
+  document.getElementById('dialin-meta').textContent =
+    [c.quarter || c.call_type, dt, c.call_time ? c.call_time + ' IST' : ''].filter(Boolean).join(' · ');
+
+  const saved = JSON.parse(localStorage.getItem('scooby_dialin_' + callId) || '{}');
+
+  /* Pre-fill phone: saved → API dial_in_url → empty */
+  let phone = saved.phone || '';
+  if (!phone && c.dial_in_url) {
+    const m = c.dial_in_url.match(/tel:([+\d\s\-().]+)/i);
+    if (m) phone = m[1].trim();
+    else if (/^[+\d]/.test(c.dial_in_url)) phone = c.dial_in_url;
+  }
+
+  document.getElementById('dialin-number').value   = phone;
+  document.getElementById('dialin-passcode').value = saved.passcode || c.passcode || '';
+  document.getElementById('dialin-pin').value      = saved.pin || '';
+
+  updateDialPreview();
+  document.getElementById('dialin-overlay').classList.add('show');
+  setTimeout(() => document.getElementById('dialin-number').focus(), 150);
+}
+
+function closeDialIn() {
+  /* Persist whatever the user typed */
+  if (_dialInCallId) {
+    localStorage.setItem('scooby_dialin_' + _dialInCallId, JSON.stringify({
+      phone:    document.getElementById('dialin-number').value.trim(),
+      passcode: document.getElementById('dialin-passcode').value.trim(),
+      pin:      document.getElementById('dialin-pin').value.trim(),
+    }));
+  }
+  document.getElementById('dialin-overlay').classList.remove('show');
+  _dialInCallId = null;
+}
+
+function updateDialPreview() {
+  const num  = document.getElementById('dialin-number').value.trim();
+  const pass = document.getElementById('dialin-passcode').value.trim();
+  const pin  = document.getElementById('dialin-pin').value.trim();
+  let seq = num || '—';
+  if (pass) seq += '  →  ' + pass + '#';
+  if (pin)  seq += '  →  ' + pin  + '#';
+  document.getElementById('dialin-preview-text').textContent = seq;
+}
+
+function startDialIn() {
+  const num  = document.getElementById('dialin-number').value.trim().replace(/[\s\-().]/g, '');
+  const pass = document.getElementById('dialin-passcode').value.trim();
+  const pin  = document.getElementById('dialin-pin').value.trim();
+  if (!num) { toast('Please enter the dial-in phone number first.', 'warn'); return; }
+
+  /* Save before dialing */
+  if (_dialInCallId) {
+    localStorage.setItem('scooby_dialin_' + _dialInCallId, JSON.stringify({
+      phone: document.getElementById('dialin-number').value.trim(),
+      passcode: pass, pin,
+    }));
+  }
+
+  /* tel: URI with DTMF — ",," = ~4s pause between tones */
+  let uri = 'tel:' + num;
+  if (pass) uri += ',,' + pass + '#';
+  if (pin)  uri += ',,' + pin  + '#';
+  window.location.href = uri;
+}
+
+function copyDialStep(step) {
+  let text;
+  if (step === 1) {
+    text = document.getElementById('dialin-number').value.trim();
+    if (!text) { toast('Enter the phone number first.', 'warn'); return; }
+  } else if (step === 2) {
+    text = document.getElementById('dialin-passcode').value.trim();
+    if (!text) { toast('Enter the passcode first.', 'warn'); return; }
+    text += '#';
+  } else {
+    text = document.getElementById('dialin-pin').value.trim();
+    if (!text) { toast('Enter the PIN first.', 'warn'); return; }
+    text += '#';
+  }
+  navigator.clipboard.writeText(text)
+    .then(() => toast('📋 Copied!', 'ok'))
+    .catch(() => toast('Copy failed', 'err'));
+}
+
+function copyAllDialSteps() {
+  const num  = document.getElementById('dialin-number').value.trim();
+  const pass = document.getElementById('dialin-passcode').value.trim();
+  const pin  = document.getElementById('dialin-pin').value.trim();
+  if (!num) { toast('Enter the phone number first.', 'warn'); return; }
+  const company = document.getElementById('dialin-company').textContent;
+  const meta    = document.getElementById('dialin-meta').textContent;
+  let text = `Dial-In: ${company}\n${meta}\n\nStep 1 — Dial: ${num}`;
+  if (pass) text += `\nStep 2 — Passcode: ${pass}#`;
+  if (pin)  text += `\nStep 3 — PIN: ${pin}#`;
+  navigator.clipboard.writeText(text)
+    .then(() => toast('📋 All steps copied!', 'ok'))
+    .catch(() => toast('Copy failed', 'err'));
+}
 </script>
 
 <!-- Infographic Modal -->
@@ -4436,6 +4632,73 @@ document.addEventListener('DOMContentLoaded', () => loadIRCalls());
         <button onclick="igCopyImage()"         style="background:rgba(255,255,255,.1);color:#fff;border:none;padding:8px 16px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:600" id="ig-copy-img-btn">📋 Copy Image</button>
       </div>
       <div style="font-size:11px;color:#64748b;margin-top:10px">Tip: Copy the image first, then paste it directly into your post.</div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Dial-In Assistant Modal ────────────────────────────────── -->
+<div id="dialin-overlay" onclick="if(event.target===this)closeDialIn()">
+  <div id="dialin-modal">
+    <div class="dialin-hdr">
+      <div>
+        <div class="dialin-company" id="dialin-company">Company</div>
+        <div class="dialin-meta"    id="dialin-meta"></div>
+      </div>
+      <button class="dialin-close" onclick="closeDialIn()">✕</button>
+    </div>
+    <div class="dialin-body">
+
+      <!-- Step 1: Phone Number -->
+      <div class="dialin-step">
+        <div class="dialin-step-hdr">
+          <div class="dialin-step-num">1</div>
+          <div class="dialin-step-lbl">Dial the number</div>
+          <button class="dialin-step-copy" onclick="copyDialStep(1)">📋 Copy</button>
+        </div>
+        <div class="dialin-input-row">
+          <input class="dialin-input" id="dialin-number" type="tel"
+            placeholder="+91 22 6280 1300" oninput="updateDialPreview()" />
+        </div>
+      </div>
+
+      <!-- Step 2: Passcode -->
+      <div class="dialin-step">
+        <div class="dialin-step-hdr">
+          <div class="dialin-step-num">2</div>
+          <div class="dialin-step-lbl">Enter Passcode, then press <strong style="color:#a5b4fc">#</strong></div>
+          <button class="dialin-step-copy" onclick="copyDialStep(2)">📋 Copy</button>
+        </div>
+        <div class="dialin-input-row">
+          <input class="dialin-input" id="dialin-passcode" type="text" inputmode="numeric"
+            placeholder="e.g. 123456" oninput="updateDialPreview()" />
+          <div class="dialin-hash">#</div>
+        </div>
+      </div>
+
+      <!-- Step 3: PIN -->
+      <div class="dialin-step">
+        <div class="dialin-step-hdr">
+          <div class="dialin-step-num">3</div>
+          <div class="dialin-step-lbl">Enter PIN, then press <strong style="color:#a5b4fc">#</strong>
+            <span style="color:#475569;font-size:10px;margin-left:4px">(optional)</span></div>
+          <button class="dialin-step-copy" onclick="copyDialStep(3)">📋 Copy</button>
+        </div>
+        <div class="dialin-input-row">
+          <input class="dialin-input" id="dialin-pin" type="text" inputmode="numeric"
+            placeholder="e.g. 7890 (if required)" oninput="updateDialPreview()" />
+          <div class="dialin-hash">#</div>
+        </div>
+      </div>
+
+      <!-- Live sequence preview -->
+      <div class="dialin-preview">
+        Auto-dial sequence: <span id="dialin-preview-text">—</span>
+      </div>
+
+    </div>
+    <div class="dialin-ftr">
+      <button class="dialin-btn-primary"   onclick="startDialIn()">📞 Start Dial-In</button>
+      <button class="dialin-btn-secondary" onclick="copyAllDialSteps()">📋 Copy All Steps</button>
     </div>
   </div>
 </div>
