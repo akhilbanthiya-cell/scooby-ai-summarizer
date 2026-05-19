@@ -367,11 +367,13 @@
       display: flex; gap: 3px;
       background: rgba(0,0,0,.3); padding: 4px;
       border-radius: 10px; margin-bottom: 20px;
+      overflow-x: auto; scrollbar-width: none;
     }
+    .tabs::-webkit-scrollbar { display: none; }
     .tab {
-      flex: 1; padding: 8px 10px; border: none; border-radius: 7px;
+      flex: 0 0 auto; padding: 8px 12px; border: none; border-radius: 7px;
       background: transparent; color: var(--txt2); font-size: 13px;
-      font-weight: 500; cursor: pointer; transition: all .2s;
+      font-weight: 500; cursor: pointer; transition: all .2s; white-space: nowrap;
     }
     .tab.active { background: var(--accent); color: #fff; box-shadow: 0 0 18px rgba(124,58,237,.35); }
     .tab:not(.active):hover { background: rgba(255,255,255,.05); color: var(--txt); }
@@ -1308,6 +1310,7 @@
       <button class="tab"        onclick="switchTab('fi',this)">📂 Upload File</button>
       <button class="tab"        onclick="switchTab('mic',this)">🎤 Live Mic</button>
       <button class="tab"        id="tab-btn-sectors" onclick="switchTab('sectors',this)">🏭 Sectors</button>
+      <button class="tab"        id="tab-btn-research" onclick="switchTab('research',this)">🔍 Research</button>
     </div>
 
     <!-- Investor Calls Tab -->
@@ -1418,6 +1421,16 @@
     <!-- Sectors Tab -->
     <div class="tab-panel" id="tab-sectors" style="min-height:200px">
       <div id="sectors-list"><div class="sectors-empty"><div class="si-icon">🏭</div><div>No sector data yet.</div><div style="margin-top:6px;font-size:12px;color:var(--txt3)">Summarize earnings call transcripts and<br>they'll be auto-tagged and grouped here by sector.</div></div></div>
+    </div>
+
+    <div class="tab-panel" id="tab-research" style="min-height:600px;padding:0">
+      <iframe
+        id="research-frame"
+        src="http://localhost:3000/"
+        style="width:100%;height:700px;border:none;border-radius:12px;display:block"
+        allow="clipboard-read; clipboard-write"
+        title="Superplexity Research"
+      ></iframe>
     </div>
 
     <div id="sum-controls">
@@ -1711,7 +1724,7 @@ const PROVIDERS = {
     model: 'llama3-8b-8192',
     endpoint: 'https://api.groq.com/openai/v1/chat/completions',
     format: 'openai',
-    defaultKey: ['gsk_zLWp4ZoFuKhHVLne7IFp','WGdyb3FYKLmcCXskUzbHh5n9cbPmxx5A'].join(''),
+    defaultKey: ['gsk_qtuiLjAsOGX1RmsjH6cH','WGdyb3FY1OpzgzhOWsSBJuJM8qRyh61b'].join(''),
     apiUrl: 'https://console.groq.com/keys',
     placeholder: 'gsk_…',
     free: true,
@@ -1848,7 +1861,7 @@ function switchTab(id, btn) {
   document.getElementById('tab-' + id).classList.add('active');
   // Hide summarize controls when Sectors tab is active
   const sc = document.getElementById('sum-controls');
-  if (sc) sc.style.display = id === 'sectors' ? 'none' : '';
+  if (sc) sc.style.display = (id === 'sectors' || id === 'research') ? 'none' : '';
   if (id === 'sectors') renderSectorsTab();
   if (id === 'ir' && !_irAllCalls.length) loadIRCalls();
   refreshWC();
@@ -2616,7 +2629,7 @@ async function transcribeAudio(f) {
 
   const formData = new FormData();
   formData.append('file', f);
-  formData.append('model', openaiKey ? 'whisper-1' : 'whisper-large-v3');
+  formData.append('model', openaiKey ? 'whisper-1' : 'whisper-large-v3-turbo');
   if (openaiKey) formData.append('task', 'translate'); // OpenAI only — Groq rejects this param
   formData.append('response_format', 'text');
 
@@ -3696,7 +3709,19 @@ function pushHistory(d) {
   return entry.id;
 }
 function _saveHistory() {
-  try { localStorage.setItem('scooby_history', JSON.stringify(S.history)); } catch(_e) {}
+  const MAX_TX = 10000;
+  const trim = arr => arr.map(h =>
+    h.transcript && h.transcript.length > MAX_TX
+      ? {...h, transcript: h.transcript.slice(0, MAX_TX)}
+      : h);
+  const strip = arr => arr.map(({transcript, ...h}) => h);
+  try {
+    localStorage.setItem('scooby_history', JSON.stringify(trim(S.history)));
+  } catch(_e) {
+    try {
+      localStorage.setItem('scooby_history', JSON.stringify(strip(S.history)));
+    } catch(_e2) {}
+  }
   document.dispatchEvent(new CustomEvent('scooby:historySaved'));
 }
 function updateHistoryEntry(id, updates) {
@@ -4498,10 +4523,12 @@ document.addEventListener('DOMContentLoaded', () => loadIRCalls());
 ══════════════════════════════════════════════════════ */
 let _dialInCallId = null;
 
+const _isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+
 function openDialIn(idx) {
   const c = _irAllCalls[idx];
   if (!c) return;
-  _dialInCallId = c.id;
+  _dialInCallId = c.id;                                    // ← fix: was undefined 'callId'
 
   document.getElementById('dialin-company').textContent = c.company_name;
   const dt = c.call_date
@@ -4510,9 +4537,8 @@ function openDialIn(idx) {
   document.getElementById('dialin-meta').textContent =
     [c.quarter || c.call_type, dt, c.call_time ? c.call_time + ' IST' : ''].filter(Boolean).join(' · ');
 
-  const saved = JSON.parse(localStorage.getItem('scooby_dialin_' + callId) || '{}');
+  const saved = JSON.parse(localStorage.getItem('scooby_dialin_' + c.id) || '{}'); // ← fix
 
-  /* Pre-fill phone: saved → API dial_in_url → empty */
   let phone = saved.phone || '';
   if (!phone && c.dial_in_url) {
     const m = c.dial_in_url.match(/tel:([+\d\s\-().]+)/i);
@@ -4520,9 +4546,14 @@ function openDialIn(idx) {
     else if (/^[+\d]/.test(c.dial_in_url)) phone = c.dial_in_url;
   }
 
-  document.getElementById('dialin-number').value   = phone;
-  document.getElementById('dialin-passcode').value = saved.passcode || c.passcode || '';
-  document.getElementById('dialin-pin').value      = saved.pin || '';
+  document.getElementById('dialin-number').value    = phone;
+  document.getElementById('dialin-passcode').value  = saved.passcode || c.passcode || '';
+  document.getElementById('dialin-pin').value       = saved.pin || '';
+  document.getElementById('dialin-caller').value    = localStorage.getItem('scooby_caller_number') || '';
+
+  /* Show desktop or mobile calling section */
+  document.getElementById('dialin-desktop-opts').style.display = _isMobile ? 'none' : 'block';
+  document.getElementById('dialin-mobile-btn').style.display   = _isMobile ? 'flex' : 'none';
 
   updateDialPreview();
   document.getElementById('dialin-overlay').classList.add('show');
@@ -4530,7 +4561,6 @@ function openDialIn(idx) {
 }
 
 function closeDialIn() {
-  /* Persist whatever the user typed */
   if (_dialInCallId) {
     localStorage.setItem('scooby_dialin_' + _dialInCallId, JSON.stringify({
       phone:    document.getElementById('dialin-number').value.trim(),
@@ -4538,6 +4568,8 @@ function closeDialIn() {
       pin:      document.getElementById('dialin-pin').value.trim(),
     }));
   }
+  const callerNum = document.getElementById('dialin-caller').value.trim();
+  if (callerNum) localStorage.setItem('scooby_caller_number', callerNum);
   document.getElementById('dialin-overlay').classList.remove('show');
   _dialInCallId = null;
 }
@@ -4552,25 +4584,50 @@ function updateDialPreview() {
   document.getElementById('dialin-preview-text').textContent = seq;
 }
 
-function startDialIn() {
+function _buildTelURI() {
   const num  = document.getElementById('dialin-number').value.trim().replace(/[\s\-().]/g, '');
   const pass = document.getElementById('dialin-passcode').value.trim();
   const pin  = document.getElementById('dialin-pin').value.trim();
-  if (!num) { toast('Please enter the dial-in phone number first.', 'warn'); return; }
-
-  /* Save before dialing */
-  if (_dialInCallId) {
-    localStorage.setItem('scooby_dialin_' + _dialInCallId, JSON.stringify({
-      phone: document.getElementById('dialin-number').value.trim(),
-      passcode: pass, pin,
-    }));
-  }
-
-  /* tel: URI with DTMF — ",," = ~4s pause between tones */
-  let uri = 'tel:' + num;
+  if (!num) return null;
+  let uri = num;
   if (pass) uri += ',,' + pass + '#';
   if (pin)  uri += ',,' + pin  + '#';
-  window.location.href = uri;
+  return { num, pass, pin, uri };
+}
+
+function _saveDialIn() {
+  if (!_dialInCallId) return;
+  localStorage.setItem('scooby_dialin_' + _dialInCallId, JSON.stringify({
+    phone:    document.getElementById('dialin-number').value.trim(),
+    passcode: document.getElementById('dialin-passcode').value.trim(),
+    pin:      document.getElementById('dialin-pin').value.trim(),
+  }));
+}
+
+/* Mobile: tel: URI with DTMF auto-sequence */
+function startDialIn() {
+  const d = _buildTelURI();
+  if (!d) { toast('Please enter the dial-in phone number first.', 'warn'); return; }
+  _saveDialIn();
+  window.location.href = 'tel:' + d.uri;
+}
+
+/* Desktop: open Skype with the number (callto: protocol) */
+function dialViaSkype() {
+  const d = _buildTelURI();
+  if (!d) { toast('Please enter the dial-in phone number first.', 'warn'); return; }
+  _saveDialIn();
+  window.open('callto:' + d.num, '_blank');
+  toast('Skype is opening — enter passcode ' + (d.pass ? d.pass + '#' : '') + ' when prompted.', 'ok');
+}
+
+/* Desktop: try system default calling app via tel: */
+function dialViaDefaultApp() {
+  const d = _buildTelURI();
+  if (!d) { toast('Please enter the dial-in phone number first.', 'warn'); return; }
+  _saveDialIn();
+  window.location.href = 'tel:' + d.uri;
+  toast('Opening your default calling app…', 'ok');
 }
 
 function copyDialStep(step) {
