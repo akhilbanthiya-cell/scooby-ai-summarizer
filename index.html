@@ -1797,6 +1797,22 @@ const PROVIDERS = {
     desc: 'Command R+. Free trial credits available. Great for long documents.',
     storageKey: 'scooby_api_key_cohere',
   },
+  deepseek: {
+    name: 'DeepSeek v4', icon: '🔮',
+    model: 'deepseek-ai/deepseek-v4-flash',
+    endpoint: 'https://integrate.api.nvidia.com/v1/chat/completions',
+    format: 'openai',
+    defaultKey: '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',
+    apiUrl: 'https://build.nvidia.com/deepseek-ai/deepseek-v4-flash',
+    placeholder: 'nvapi-…',
+    free: true,
+    desc: 'DeepSeek v4 Flash via NVIDIA. Extended thinking & high reasoning — best for deep analysis.',
+    storageKey: 'scooby_api_key_deepseek',
+    temperature: 1,
+    top_p: 0.95,
+    max_tokens: 16384,
+    extraBody: { chat_template_kwargs: { thinking: true, reasoning_effort: 'high' } },
+  },
 };
 
 /* ── CORS proxies ────────────────────────────────────────────────── */
@@ -2851,13 +2867,17 @@ async function callAPI(transcript, mode) {
     return parseAPIText(result.message?.content[0]?.text || result.text || '');
   }
 
-  /* ── OpenAI-compatible (Mistral, OpenAI, Groq) ── */
+  /* ── OpenAI-compatible (Mistral, OpenAI, Groq, DeepSeek, …) ── */
   const body = JSON.stringify({
-    model: prov.model, max_tokens: 4096,
+    model: prov.model,
+    max_tokens: prov.max_tokens || 4096,
+    ...(prov.temperature !== undefined && { temperature: prov.temperature }),
+    ...(prov.top_p       !== undefined && { top_p:       prov.top_p       }),
     messages: [
       { role: 'system', content: sysPrompt(mode) },
       { role: 'user',   content: userMsg },
     ],
+    ...(prov.extraBody || {}),
   });
 
   const MAX_TRIES = 4;
