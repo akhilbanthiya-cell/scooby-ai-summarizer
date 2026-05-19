@@ -1812,6 +1812,7 @@ const PROVIDERS = {
     top_p: 0.95,
     max_tokens: 16384,
     extraBody: { chat_template_kwargs: { thinking: true, reasoning_effort: 'high' } },
+    timeoutMs: 120000,
   },
 };
 
@@ -2887,7 +2888,7 @@ async function callAPI(transcript, mode) {
     let resp;
     try {
       const ctrl    = new AbortController();
-      const timeout = setTimeout(() => ctrl.abort(), 30000);
+      const timeout = setTimeout(() => ctrl.abort(), prov.timeoutMs || 30000);
       resp = await fetch(prov.endpoint, {
         method: 'POST',
         headers: { 'content-type': 'application/json', 'Authorization': `Bearer ${key}` },
