@@ -1586,6 +1586,8 @@
       <div class="rsch-config-row">
         <span class="rsch-config-label">Backend:</span>
         <input type="text" id="rsch-backend-url" value="http://localhost:8000" class="rsch-url-input" placeholder="http://localhost:8000" />
+        <span class="rsch-config-label" style="margin-left:12px">Tavily:</span>
+        <input type="password" id="rsch-tavily-key" class="rsch-url-input" placeholder="tvly-… (required for web search)" style="flex:1;min-width:180px" />
       </div>
 
       <!-- Search bar -->
@@ -4982,6 +4984,19 @@ function copyAllDialSteps() {
     return (document.getElementById('rsch-backend-url')?.value?.trim() || 'http://localhost:8000').replace(/\/$/, '');
   }
 
+  // Persist Tavily key in localStorage so it survives page reloads
+  document.addEventListener('DOMContentLoaded', function () {
+    const tEl = document.getElementById('rsch-tavily-key');
+    if (!tEl) return;
+    const saved = localStorage.getItem('scooby_tavily_key');
+    if (saved) tEl.value = saved;
+    tEl.addEventListener('change', () => {
+      const v = tEl.value.trim();
+      if (v) localStorage.setItem('scooby_tavily_key', v);
+      else localStorage.removeItem('scooby_tavily_key');
+    });
+  });
+
   function _setStatus(msg) {
     const bar = document.getElementById('rsch-status-bar');
     if (!bar) return;
@@ -5081,9 +5096,13 @@ function copyAllDialSteps() {
 
     try {
       const endpoint = isDeep ? '/api/research' : '/api/search';
-      const body     = isDeep
-        ? { topic: query }
-        : { query, ...(_convId ? { conversation_id: _convId } : {}) };
+      const _ak = localStorage.getItem('scooby_api_key_anthropic') || '';
+      const _ok = localStorage.getItem('scooby_api_key_openai') || '';
+      const _tk = document.getElementById('rsch-tavily-key')?.value?.trim() || localStorage.getItem('scooby_tavily_key') || '';
+      const _keys = { ...(_ak ? { anthropic_key: _ak } : {}), ...(_ok ? { openai_key: _ok } : {}), ...(_tk ? { tavily_key: _tk } : {}) };
+      const body = isDeep
+        ? { topic: query, ..._keys }
+        : { query, ...(_convId ? { conversation_id: _convId } : {}), ..._keys };
 
       const resp = await fetch(backend + endpoint, {
         method: 'POST',
