@@ -361,6 +361,25 @@
       color:#94A3B8; cursor:pointer; transition:all .15s; font-family:inherit;
     }
     .dialin-btn-secondary:hover { background:rgba(255,255,255,.1); color:#fff; }
+    .dialin-btn-danger {
+      flex:1; padding:11px; border-radius:10px; font-size:13px; font-weight:700;
+      background:rgba(239,68,68,.18); border:1px solid rgba(239,68,68,.35);
+      color:#f87171; cursor:pointer; transition:all .15s; font-family:inherit;
+    }
+    .dialin-btn-danger:hover { background:rgba(239,68,68,.28); }
+    .dialin-webcast-btn {
+      width:100%; padding:12px 16px; border:none; border-radius:10px;
+      background:rgba(16,185,129,.14); border:1px solid rgba(16,185,129,.28);
+      color:#10b981; font-size:13px; font-weight:700; cursor:pointer;
+      transition:all .15s; font-family:inherit; text-align:center;
+    }
+    .dialin-webcast-btn:hover { background:rgba(16,185,129,.25); }
+    .dialin-call-status {
+      text-align:center; font-size:12px; color:var(--txt3);
+      padding:5px 0; min-height:18px; transition:color .2s;
+    }
+    .dialin-call-status.ok  { color:#10b981; font-weight:600; }
+    .dialin-call-status.err { color:#f87171; }
 
     /* ── Tabs ───────────────────────────────────────────────────── */
     .tabs {
@@ -1667,6 +1686,17 @@
   <div id="prov-active-banner" style="margin:14px 14px 0;padding:12px 16px;border-radius:12px;background:rgba(124,58,237,.12);border:1px solid rgba(124,58,237,.3);font-size:13px;color:var(--accent-lt)"></div>
   <div class="settings-section-label" style="margin-top:8px">Choose AI Model — Mistral is default (free)</div>
   <div id="prov-cards-list"></div>
+  <div class="settings-section-label" style="margin-top:4px">📞 Browser Calling (Twilio)</div>
+  <div style="padding:0 14px 16px">
+    <div style="font-size:12px;color:var(--txt3);line-height:1.6;margin-bottom:8px">
+      Enables the <strong style="color:var(--txt2)">Call via Browser</strong> button on IR calls — dials the number and enters passcode/PIN automatically.<br>
+      Needs a free <a href="https://www.twilio.com/try-twilio" target="_blank" style="color:var(--accent-lt)">Twilio account</a> + a token endpoint (Cloudflare Worker).
+    </div>
+    <input type="url" id="twilio-token-url"
+      placeholder="https://your-worker.workers.dev/token"
+      style="width:100%;background:rgba(0,0,0,.35);border:1px solid var(--border);border-radius:8px;color:var(--txt);padding:9px 12px;font-size:12px;box-sizing:border-box;font-family:inherit"
+      oninput="localStorage.setItem('scooby_twilio_token_url', this.value.trim())" />
+  </div>
   <div class="settings-footer">
     <p>Keys are stored only in your browser (localStorage). Nothing is sent to external servers except the transcript you choose to summarize.</p>
   </div>
@@ -3819,6 +3849,8 @@ function closeChromeModal() { document.getElementById('chrome-overlay').classLis
 /* ── Settings panel ── */
 function openSettings() {
   renderProviderCards();
+  const ttu = document.getElementById('twilio-token-url');
+  if (ttu) ttu.value = localStorage.getItem('scooby_twilio_token_url') || '';
   document.getElementById('settings-overlay').classList.add('show');
   document.getElementById('settings-panel').classList.add('show');
 }
@@ -4528,7 +4560,7 @@ const _isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
 function openDialIn(idx) {
   const c = _irAllCalls[idx];
   if (!c) return;
-  _dialInCallId = c.id;                                    // ← fix: was undefined 'callId'
+  _dialInCallId = c.id;
 
   document.getElementById('dialin-company').textContent = c.company_name;
   const dt = c.call_date
@@ -4537,7 +4569,7 @@ function openDialIn(idx) {
   document.getElementById('dialin-meta').textContent =
     [c.quarter || c.call_type, dt, c.call_time ? c.call_time + ' IST' : ''].filter(Boolean).join(' · ');
 
-  const saved = JSON.parse(localStorage.getItem('scooby_dialin_' + c.id) || '{}'); // ← fix
+  const saved = JSON.parse(localStorage.getItem('scooby_dialin_' + c.id) || '{}');
 
   let phone = saved.phone || '';
   if (!phone && c.dial_in_url) {
@@ -4546,14 +4578,18 @@ function openDialIn(idx) {
     else if (/^[+\d]/.test(c.dial_in_url)) phone = c.dial_in_url;
   }
 
-  document.getElementById('dialin-number').value    = phone;
-  document.getElementById('dialin-passcode').value  = saved.passcode || c.passcode || '';
-  document.getElementById('dialin-pin').value       = saved.pin || '';
-  document.getElementById('dialin-caller').value    = localStorage.getItem('scooby_caller_number') || '';
+  document.getElementById('dialin-number').value   = phone;
+  document.getElementById('dialin-passcode').value = saved.passcode || c.passcode || '';
+  document.getElementById('dialin-pin').value      = saved.pin || '';
 
-  /* Show desktop or mobile calling section */
-  document.getElementById('dialin-desktop-opts').style.display = _isMobile ? 'none' : 'block';
-  document.getElementById('dialin-mobile-btn').style.display   = _isMobile ? 'flex' : 'none';
+  /* Web join section */
+  _webcastUrl = c.webcast_url || null;
+  document.getElementById('dialin-webcast').style.display = _webcastUrl ? 'block' : 'none';
+
+  /* Reset call UI */
+  _setCallStatus('');
+  document.getElementById('dialin-call-btn').style.display    = 'block';
+  document.getElementById('dialin-hangup-btn').style.display  = 'none';
 
   updateDialPreview();
   document.getElementById('dialin-overlay').classList.add('show');
@@ -4561,6 +4597,7 @@ function openDialIn(idx) {
 }
 
 function closeDialIn() {
+  hangupBrowserCall();
   if (_dialInCallId) {
     localStorage.setItem('scooby_dialin_' + _dialInCallId, JSON.stringify({
       phone:    document.getElementById('dialin-number').value.trim(),
@@ -4568,10 +4605,105 @@ function closeDialIn() {
       pin:      document.getElementById('dialin-pin').value.trim(),
     }));
   }
-  const callerNum = document.getElementById('dialin-caller').value.trim();
-  if (callerNum) localStorage.setItem('scooby_caller_number', callerNum);
   document.getElementById('dialin-overlay').classList.remove('show');
   _dialInCallId = null;
+}
+
+/* ── Twilio in-browser calling ───────────────────────────────── */
+let _twilioDevice = null;
+let _twilioCall   = null;
+let _webcastUrl   = null;
+
+function joinViaWeb() {
+  if (_webcastUrl) window.open(_webcastUrl, '_blank');
+}
+
+function _setCallStatus(msg, cls) {
+  const el = document.getElementById('dialin-call-status');
+  if (!el) return;
+  el.textContent = msg;
+  el.className = 'dialin-call-status' + (cls ? ' ' + cls : '');
+}
+
+async function callViaBrowser() {
+  const tokenUrl = localStorage.getItem('scooby_twilio_token_url') || '';
+  if (!tokenUrl) {
+    toast('Add your Twilio token URL in ⚙ Settings → Browser Calling first.', 'warn');
+    return;
+  }
+  const d = _buildTelURI();
+  if (!d) { toast('Enter the dial-in number first.', 'warn'); return; }
+  _saveDialIn();
+
+  document.getElementById('dialin-call-btn').style.display = 'none';
+  _setCallStatus('Loading…');
+
+  try {
+    if (!window.Twilio) {
+      await new Promise((res, rej) => {
+        const s = document.createElement('script');
+        s.src = 'https://sdk.twilio.com/js/client/releases/2.9.0/twilio.min.js';
+        s.onload = res; s.onerror = () => rej(new Error('Failed to load Twilio SDK'));
+        document.head.appendChild(s);
+      });
+    }
+
+    _setCallStatus('Fetching token…');
+    const resp = await fetch(tokenUrl);
+    if (!resp.ok) throw new Error('Token endpoint returned ' + resp.status);
+    const { token } = await resp.json();
+    if (!token) throw new Error('No token in response');
+
+    _twilioDevice = new Twilio.Device(token, { codecPreferences: ['opus', 'pcmu'] });
+    await _twilioDevice.register();
+
+    _setCallStatus('Dialing ' + d.num + '…');
+    _twilioCall = await _twilioDevice.connect({ params: { To: d.num } });
+
+    _twilioCall.on('accept', () => {
+      _setCallStatus('🟢 Connected — entering codes…', 'ok');
+      document.getElementById('dialin-hangup-btn').style.display = 'block';
+      /* Auto-send DTMF after 4 seconds: passcode# then pin# */
+      setTimeout(() => {
+        let dtmf = '';
+        if (d.pass) dtmf += d.pass + '#';
+        if (d.pin)  dtmf += 'ww' + d.pin + '#';
+        if (dtmf && _twilioCall) {
+          _twilioCall.sendDigits(dtmf);
+          _setCallStatus('🟢 On the call', 'ok');
+        }
+      }, 4000);
+    });
+
+    _twilioCall.on('disconnect', () => {
+      _setCallStatus('Call ended.');
+      document.getElementById('dialin-hangup-btn').style.display = 'none';
+      document.getElementById('dialin-call-btn').style.display   = 'block';
+      _twilioCall = null;
+    });
+
+    _twilioCall.on('error', err => {
+      _setCallStatus('Error: ' + err.message, 'err');
+      document.getElementById('dialin-hangup-btn').style.display = 'none';
+      document.getElementById('dialin-call-btn').style.display   = 'block';
+    });
+
+  } catch(e) {
+    _setCallStatus('Failed: ' + e.message, 'err');
+    document.getElementById('dialin-call-btn').style.display = 'block';
+    toast('Browser call failed — ' + e.message, 'warn');
+  }
+}
+
+function hangupBrowserCall() {
+  try { if (_twilioCall)   _twilioCall.disconnect();  } catch {}
+  try { if (_twilioDevice) _twilioDevice.destroy();   } catch {}
+  _twilioCall = null; _twilioDevice = null;
+  _setCallStatus('');
+  const cb = document.getElementById('dialin-call-btn');
+  const hb = document.getElementById('dialin-hangup-btn');
+  if (cb) cb.style.display = 'block';
+  if (hb) hb.style.display = 'none';
 }
 
 function updateDialPreview() {
@@ -4705,11 +4837,17 @@ function copyAllDialSteps() {
     </div>
     <div class="dialin-body">
 
+      <!-- Web Join (shown only when webcast_url exists) -->
+      <div id="dialin-webcast" style="display:none">
+        <button class="dialin-webcast-btn" onclick="joinViaWeb()">🌐 Join via Web Browser</button>
+        <div style="text-align:center;font-size:11px;color:var(--txt3);margin:5px 0 4px">— or dial in manually below —</div>
+      </div>
+
       <!-- Step 1: Phone Number -->
       <div class="dialin-step">
         <div class="dialin-step-hdr">
           <div class="dialin-step-num">1</div>
-          <div class="dialin-step-lbl">Dial the number</div>
+          <div class="dialin-step-lbl">Dial-in number</div>
           <button class="dialin-step-copy" onclick="copyDialStep(1)">📋 Copy</button>
         </div>
         <div class="dialin-input-row">
@@ -4722,7 +4860,7 @@ function copyAllDialSteps() {
       <div class="dialin-step">
         <div class="dialin-step-hdr">
           <div class="dialin-step-num">2</div>
-          <div class="dialin-step-lbl">Enter Passcode, then press <strong style="color:#a5b4fc">#</strong></div>
+          <div class="dialin-step-lbl">Passcode / Access code &nbsp;<strong style="color:#a5b4fc">#</strong></div>
           <button class="dialin-step-copy" onclick="copyDialStep(2)">📋 Copy</button>
         </div>
         <div class="dialin-input-row">
@@ -4736,26 +4874,30 @@ function copyAllDialSteps() {
       <div class="dialin-step">
         <div class="dialin-step-hdr">
           <div class="dialin-step-num">3</div>
-          <div class="dialin-step-lbl">Enter PIN, then press <strong style="color:#a5b4fc">#</strong>
+          <div class="dialin-step-lbl">PIN &nbsp;<strong style="color:#a5b4fc">#</strong>
             <span style="color:#475569;font-size:10px;margin-left:4px">(optional)</span></div>
           <button class="dialin-step-copy" onclick="copyDialStep(3)">📋 Copy</button>
         </div>
         <div class="dialin-input-row">
           <input class="dialin-input" id="dialin-pin" type="text" inputmode="numeric"
-            placeholder="e.g. 7890 (if required)" oninput="updateDialPreview()" />
+            placeholder="e.g. 7890" oninput="updateDialPreview()" />
           <div class="dialin-hash">#</div>
         </div>
       </div>
 
-      <!-- Live sequence preview -->
+      <!-- Auto-dial preview -->
       <div class="dialin-preview">
         Auto-dial sequence: <span id="dialin-preview-text">—</span>
       </div>
 
+      <!-- Call status -->
+      <div class="dialin-call-status" id="dialin-call-status"></div>
+
     </div>
     <div class="dialin-ftr">
-      <button class="dialin-btn-primary"   onclick="startDialIn()">📞 Start Dial-In</button>
-      <button class="dialin-btn-secondary" onclick="copyAllDialSteps()">📋 Copy All Steps</button>
+      <button class="dialin-btn-primary"   id="dialin-call-btn"   onclick="callViaBrowser()">📞 Call via Browser</button>
+      <button class="dialin-btn-danger"    id="dialin-hangup-btn" onclick="hangupBrowserCall()" style="display:none">🔴 Hang Up</button>
+      <button class="dialin-btn-secondary" onclick="copyAllDialSteps()">📋 Copy Steps</button>
     </div>
   </div>
 </div>
