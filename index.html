@@ -2022,6 +2022,22 @@ const PROVIDERS = {
     max_tokens: 8192,
     timeoutMs: 60000,
   },
+  qwen: {
+    name: 'Qwen3 235B', icon: '🌐',
+    model: 'qwen/qwen3-235b-a22b',
+    endpoint: 'https://integrate.api.nvidia.com/v1/chat/completions',
+    format: 'openai',
+    defaultKey: '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',
+    apiUrl: 'https://build.nvidia.com/qwen/qwen3-235b-a22b',
+    placeholder: 'nvapi-…',
+    free: true,
+    desc: 'Qwen3 235B via NVIDIA. Alibaba\'s flagship MoE model — exceptional reasoning and multilingual ability.',
+    storageKey: 'scooby_api_key_qwen',
+    temperature: 0.7,
+    top_p: 0.95,
+    max_tokens: 16384,
+    timeoutMs: 120000,
+  },
 };
 
 /* ── CORS proxies ────────────────────────────────────────────────── */
