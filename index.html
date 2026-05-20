@@ -4682,8 +4682,8 @@ async function fetchResearchBytesCalls() {
     try {
       const r = await timedFetch(px(RB_URL), 15000);
       if (!r.ok) continue;
-      html = await r.text();
-      break;
+      const text = await r.text();
+      if (text && text.length > 2000) { html = text; break; }
     } catch (e) { continue; }
   }
   if (!html) return [];
@@ -4691,11 +4691,36 @@ async function fetchResearchBytesCalls() {
   const doc   = new DOMParser().parseFromString(html, 'text/html');
   const today = new Date().toISOString().split('T')[0];
   const calls = [];
+  const seen  = new Set();
 
+  function rbMakeUrl(href) {
+    if (!href) return null;
+    return href.startsWith('http') ? href : `https://www.researchbytes.com/${href.replace(/^\//, '')}`;
+  }
+
+  function rbPushCall(companyName, nseSymbol, timeText, eventName, announcementUrl, webcastUrl) {
+    if (!companyName || seen.has(companyName.toLowerCase())) return;
+    seen.add(companyName.toLowerCase());
+    calls.push({
+      company_name:     companyName,
+      nse_symbol:       nseSymbol || '',
+      bse_code:         '',
+      call_date:        today,
+      call_time:        timeText,
+      quarter:          eventName.replace(/\(Webinar\)/i, '').trim(),
+      call_type:        eventName.replace(/\(Webinar\)/i, '').trim(),
+      webcast_url:      webcastUrl || null,
+      dial_in_url:      null,
+      announcement_url: announcementUrl || null,
+      confidence:       1.0,
+      _source:          'researchbytes',
+    });
+  }
+
+  /* Strategy 1: standard <table><tr><td> layout */
   for (const row of doc.querySelectorAll('tr')) {
     const tds = row.querySelectorAll('td');
     if (tds.length < 3) continue;
-
     const timeText = tds[0].textContent.trim();
     if (!/^\d{1,2}:\d{2}\s*(AM|PM)$/i.test(timeText)) continue;
 
@@ -4709,26 +4734,56 @@ async function fetchResearchBytesCalls() {
     const eventLink = tds[2].querySelector('a');
     if (!eventLink) continue;
     const eventName      = eventLink.textContent.trim();
-    const eventHref      = eventLink.getAttribute('href') || '';
-    const announcementUrl = eventHref.startsWith('http')
-      ? eventHref
-      : `https://www.researchbytes.com/${eventHref}`;
-    const hasWebinar = !!tds[2].querySelector('img[src*="imgWebinar"]');
+    const eventHref      = rbMakeUrl(eventLink.getAttribute('href'));
 
-    calls.push({
-      company_name:     companyName,
-      nse_symbol:       nseSymbol,
-      bse_code:         '',
-      call_date:        today,
-      call_time:        timeText,
-      quarter:          eventName,
-      call_type:        eventName,
-      webcast_url:      hasWebinar ? announcementUrl : null,
-      dial_in_url:      null,
-      announcement_url: announcementUrl,
-      confidence:       1.0,
-      _source:          'researchbytes',
+    // Prefer an external webcast link (tinyurl, zoom, etc.) over the detail page
+    const allLinks  = [...tds[2].querySelectorAll('a')];
+    const extLink   = allLinks.find(a => {
+      const h = a.getAttribute('href') || '';
+      return h.startsWith('http') && !h.includes('researchbytes');
     });
+    const hasWebinar = !!tds[2].querySelector('img[src*="ebinar"]');
+    const webcastUrl = extLink ? extLink.getAttribute('href') : (hasWebinar ? eventHref : null);
+
+    rbPushCall(companyName, nseSymbol, timeText, eventName, eventHref, webcastUrl);
+  }
+
+  /* Strategy 2: div/span-based layout — find all time-looking text nodes */
+  if (!calls.length) {
+    const timeNodes = [...doc.querySelectorAll('*')].filter(el =>
+      el.children.length === 0 && /^\d{1,2}:\d{2}\s*(AM|PM)$/i.test(el.textContent.trim())
+    );
+    for (const timeEl of timeNodes) {
+      const timeText = timeEl.textContent.trim();
+      const parent   = timeEl.closest('tr, li, div[class], div[id]') || timeEl.parentElement;
+      if (!parent) continue;
+      const links = [...parent.querySelectorAll('a')];
+      if (links.length < 2) continue;
+      const companyLink = links[0];
+      const companyName = companyLink.textContent.trim();
+      const companyHref = companyLink.getAttribute('href') || '';
+      const tickerMatch = companyHref.match(/([A-Z0-9]+)\.htm$/i);
+      const eventLink   = links[1];
+      const eventName   = eventLink.textContent.trim();
+      const eventHref   = rbMakeUrl(eventLink.getAttribute('href'));
+      const extLink     = links.find(a => {
+        const h = a.getAttribute('href') || '';
+        return h.startsWith('http') && !h.includes('researchbytes');
+      });
+      rbPushCall(companyName, tickerMatch ? tickerMatch[1] : '', timeText, eventName, eventHref, extLink ? extLink.getAttribute('href') : null);
+    }
+  }
+
+  /* Strategy 3: regex fallback on raw HTML */
+  if (!calls.length) {
+    const re = /(\d{1,2}:\d{2}\s*(?:AM|PM))[\s\S]{0,200}?href="([^"]+\.htm)"[^>]*>([^<]+)<\/a>[\s\S]{0,300}?href="(eventdetails[^"]+)"[^>]*>([^<]+)<\/a>/gi;
+    let m;
+    while ((m = re.exec(html)) !== null) {
+      const [, time, compHref, company, evHref, event] = m;
+      const tickerMatch = compHref.match(/([A-Z0-9]+)\.htm$/i);
+      rbPushCall(company.trim(), tickerMatch ? tickerMatch[1] : '', time.trim(),
+        event.trim(), rbMakeUrl(evHref), null);
+    }
   }
   return calls;
 }
