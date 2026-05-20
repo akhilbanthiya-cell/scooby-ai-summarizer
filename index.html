@@ -2038,6 +2038,22 @@ const PROVIDERS = {
     max_tokens: 16384,
     timeoutMs: 120000,
   },
+  mistral: {
+    name: 'Mistral Large 2', icon: '🌊',
+    model: 'mistralai/mistral-large-2-instruct',
+    endpoint: 'https://integrate.api.nvidia.com/v1/chat/completions',
+    format: 'openai',
+    defaultKey: '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',
+    apiUrl: 'https://build.nvidia.com/mistralai/mistral-large-2-instruct',
+    placeholder: 'nvapi-…',
+    free: true,
+    desc: 'Mistral Large 2 via NVIDIA. Mistral\'s flagship model — strong reasoning, coding, and instruction following.',
+    storageKey: 'scooby_api_key_mistral',
+    temperature: 0.7,
+    top_p: 1,
+    max_tokens: 8192,
+    timeoutMs: 60000,
+  },
 };
 
 /* ── CORS proxies ────────────────────────────────────────────────── */
