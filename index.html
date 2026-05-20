@@ -4675,6 +4675,64 @@ function scrollToIRCalls() {
   document.getElementById('input-card').scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
+async function fetchResearchBytesCalls() {
+  const RB_URL = 'https://www.researchbytes.com/';
+  let html = null;
+  for (const px of PROXIES) {
+    try {
+      const r = await timedFetch(px(RB_URL), 15000);
+      if (!r.ok) continue;
+      html = await r.text();
+      break;
+    } catch (e) { continue; }
+  }
+  if (!html) return [];
+
+  const doc   = new DOMParser().parseFromString(html, 'text/html');
+  const today = new Date().toISOString().split('T')[0];
+  const calls = [];
+
+  for (const row of doc.querySelectorAll('tr')) {
+    const tds = row.querySelectorAll('td');
+    if (tds.length < 3) continue;
+
+    const timeText = tds[0].textContent.trim();
+    if (!/^\d{1,2}:\d{2}\s*(AM|PM)$/i.test(timeText)) continue;
+
+    const companyLink = tds[1].querySelector('a');
+    if (!companyLink) continue;
+    const companyName = companyLink.textContent.trim();
+    const companyHref = companyLink.getAttribute('href') || '';
+    const tickerMatch = companyHref.match(/([A-Z0-9]+)\.htm$/i);
+    const nseSymbol   = tickerMatch ? tickerMatch[1] : '';
+
+    const eventLink = tds[2].querySelector('a');
+    if (!eventLink) continue;
+    const eventName      = eventLink.textContent.trim();
+    const eventHref      = eventLink.getAttribute('href') || '';
+    const announcementUrl = eventHref.startsWith('http')
+      ? eventHref
+      : `https://www.researchbytes.com/${eventHref}`;
+    const hasWebinar = !!tds[2].querySelector('img[src*="imgWebinar"]');
+
+    calls.push({
+      company_name:     companyName,
+      nse_symbol:       nseSymbol,
+      bse_code:         '',
+      call_date:        today,
+      call_time:        timeText,
+      quarter:          eventName,
+      call_type:        eventName,
+      webcast_url:      hasWebinar ? announcementUrl : null,
+      dial_in_url:      null,
+      announcement_url: announcementUrl,
+      confidence:       1.0,
+      _source:          'researchbytes',
+    });
+  }
+  return calls;
+}
+
 async function loadIRCalls(force = false) {
   const btn  = document.getElementById('ir-refresh-btn');
   const list = document.getElementById('ir-calls-list');
@@ -4686,14 +4744,24 @@ async function loadIRCalls(force = false) {
     '<div class="ir-skeleton"></div>'.repeat(6) + '</div>';
 
   try {
-    const res  = await fetch(`${IR_API}/api/calls?include_past=false&days=180`);
-    const data = await res.json();
-    _irAllCalls = (data.calls || []).sort((a, b) => a.call_date.localeCompare(b.call_date));
+    const [apiResult, rbResult] = await Promise.allSettled([
+      fetch(`${IR_API}/api/calls?include_past=false&days=180`).then(r => r.json()),
+      fetchResearchBytesCalls(),
+    ]);
+
+    const apiCalls = apiResult.status === 'fulfilled' ? (apiResult.value.calls || []) : [];
+    const rbCalls  = rbResult.status  === 'fulfilled' ? rbResult.value : [];
+
+    const existing = new Set(apiCalls.map(c => `${c.company_name}|${c.call_date}`));
+    const unique   = rbCalls.filter(c => !existing.has(`${c.company_name}|${c.call_date}`));
+
+    _irAllCalls = [...apiCalls, ...unique].sort((a, b) => a.call_date.localeCompare(b.call_date));
 
     const countEl = document.getElementById('ir-count');
     if (countEl) countEl.textContent = _irAllCalls.length;
 
-    const ts = data.fetched_at ? new Date(data.fetched_at + 'Z').toLocaleString('en-IN',
+    const fetchedAt = apiResult.status === 'fulfilled' ? apiResult.value.fetched_at : null;
+    const ts = fetchedAt ? new Date(fetchedAt + 'Z').toLocaleString('en-IN',
       { day:'numeric', month:'short', hour:'2-digit', minute:'2-digit' }) : '';
     const el = document.getElementById('ir-fetched-at');
     if (el) el.textContent = ts ? `Updated ${ts}` : '';
