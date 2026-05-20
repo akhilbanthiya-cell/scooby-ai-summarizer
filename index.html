@@ -2054,6 +2054,22 @@ const PROVIDERS = {
     max_tokens: 8192,
     timeoutMs: 60000,
   },
+  gemma: {
+    name: 'Gemma 3 27B', icon: '💠',
+    model: 'google/gemma-3-27b-it',
+    endpoint: 'https://integrate.api.nvidia.com/v1/chat/completions',
+    format: 'openai',
+    defaultKey: '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',
+    apiUrl: 'https://build.nvidia.com/google/gemma-3-27b-it',
+    placeholder: 'nvapi-…',
+    free: true,
+    desc: 'Google Gemma 3 27B via NVIDIA. Google\'s open flagship — strong instruction following and reasoning.',
+    storageKey: 'scooby_api_key_gemma',
+    temperature: 0.7,
+    top_p: 1,
+    max_tokens: 8192,
+    timeoutMs: 60000,
+  },
 };
 
 /* ── CORS proxies ────────────────────────────────────────────────── */
