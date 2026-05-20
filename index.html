@@ -299,6 +299,14 @@
       transition:background .15s; font-family:inherit;
     }
     .ir-dial-btn:hover { background:rgba(16,185,129,.24); }
+    .ir-web-btn {
+      font-size:11px; font-weight:700; padding:3px 10px; border-radius:6px;
+      background:rgba(99,102,241,.15); color:#a5b4fc;
+      border:1px solid rgba(99,102,241,.3);
+      text-decoration:none; cursor:pointer;
+      transition:background .15s; white-space:nowrap;
+    }
+    .ir-web-btn:hover { background:rgba(99,102,241,.28); }
 
     /* ── Dial-In Modal ───────────────────────────────────────────── */
     #dialin-overlay {
@@ -4946,16 +4954,15 @@ function irCardHTML(c, today) {
   const isEst    = c.confidence < 0.8;
 
   const timeStr   = (diff >= 0 && diff <= 7 && c.call_time) ? c.call_time : null;
-  const joinUrl   = (diff >= 0 && diff <= 7) ? (c.webcast_url || c.dial_in_url || null) : null;
   const annUrl    = c.announcement_url || null;
 
   const timeBadge = timeStr
     ? `<span class="ir-time-badge">⏰ ${timeStr}</span>`
     : '';
-  const joinBtn = joinUrl
-    ? `<a class="ir-join-btn" href="${joinUrl}" target="_blank" rel="noopener">Join Call</a>`
-    : (annUrl && diff >= 0 && diff <= 7
-        ? `<a class="ir-join-btn ir-join-details" href="${annUrl}" target="_blank" rel="noopener">Details</a>`
+  const webBtn = c.webcast_url
+    ? `<a class="ir-web-btn" href="${c.webcast_url}" target="_blank" rel="noopener">🌐 Join via Browser</a>`
+    : (annUrl
+        ? `<a class="ir-web-btn" style="opacity:.55" href="${annUrl}" target="_blank" rel="noopener">🌐 Details</a>`
         : '');
   const dialInBtn = `<button class="ir-dial-btn" onclick="openDialIn(${_irAllCalls.indexOf(c)})">📞 Dial In</button>`;
 
@@ -4971,7 +4978,7 @@ function irCardHTML(c, today) {
       <div class="ir-countdown ${cntCls}">${cntTxt}</div>
     </div>
   </div>
-  <div class="ir-call-row">${timeBadge}${joinBtn}${dialInBtn}</div>
+  <div class="ir-call-row">${timeBadge}${webBtn}${dialInBtn}</div>
   <div class="ir-footer">
     <span class="ir-quarter-chip">${qLabel}</span>
     <div class="ir-badges">
