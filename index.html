@@ -2006,6 +2006,22 @@ const PROVIDERS = {
     extraBody: { chat_template_kwargs: { enable_thinking: true }, reasoning_budget: 16384 },
     timeoutMs: 120000,
   },
+  llama: {
+    name: 'Llama 3.3', icon: '🦙',
+    model: 'meta/llama-3.3-70b-instruct',
+    endpoint: 'https://integrate.api.nvidia.com/v1/chat/completions',
+    format: 'openai',
+    defaultKey: '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',
+    apiUrl: 'https://build.nvidia.com/meta/llama-3_3-70b-instruct',
+    placeholder: 'nvapi-…',
+    free: true,
+    desc: 'Meta Llama 3.3 70B via NVIDIA. Fast, highly capable open-source model — great all-rounder.',
+    storageKey: 'scooby_api_key_llama',
+    temperature: 0.7,
+    top_p: 1,
+    max_tokens: 8192,
+    timeoutMs: 60000,
+  },
 };
 
 /* ── CORS proxies ────────────────────────────────────────────────── */
