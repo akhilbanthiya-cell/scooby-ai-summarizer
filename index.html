@@ -4795,6 +4795,31 @@ async function fetchResearchBytesCalls() {
         event.trim(), rbMakeUrl(evHref), null);
     }
   }
+
+  /* Post-process: sweep raw HTML for company → tinyurl pairs and attach as webcast_url */
+  const tinyRe = /href="([^"]*-[A-Z0-9]+\.htm)"[\s\S]{0,800}?href="(https?:\/\/tinyurl\.com\/[^"]+)"/gi;
+  const tinyMap = {};
+  let tm;
+  while ((tm = tinyRe.exec(html)) !== null) {
+    const tickerM = tm[1].match(/([A-Z0-9]+)\.htm$/i);
+    if (tickerM) tinyMap[tickerM[1].toLowerCase()] = tm[2];
+  }
+  /* Also build a name-based map in case ticker extraction fails */
+  const tinyByName = /href="([^"]*\.htm)"[^>]*>([^<]+)<\/a>[\s\S]{0,600}?href="(https?:\/\/tinyurl\.com\/[^"]+)"/gi;
+  let tn;
+  while ((tn = tinyByName.exec(html)) !== null) {
+    const name = tn[2].trim().toLowerCase();
+    if (name && !tinyMap[name]) tinyMap[name] = tn[3];
+  }
+  for (const c of calls) {
+    if (!c.webcast_url) {
+      c.webcast_url =
+        tinyMap[c.nse_symbol.toLowerCase()] ||
+        tinyMap[c.company_name.toLowerCase()] ||
+        null;
+    }
+  }
+
   return calls;
 }
 
