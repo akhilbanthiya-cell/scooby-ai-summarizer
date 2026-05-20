@@ -1989,6 +1989,23 @@ const PROVIDERS = {
     extraBody: { chat_template_kwargs: { thinking: false } },
     timeoutMs: 120000,
   },
+  nemotron: {
+    name: 'Nemotron', icon: '⚡',
+    model: 'nvidia/nemotron-3-nano-omni-30b-a3b-reasoning',
+    endpoint: 'https://integrate.api.nvidia.com/v1/chat/completions',
+    format: 'openai',
+    defaultKey: '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',
+    apiUrl: 'https://build.nvidia.com/nvidia/nemotron-3-nano-omni-30b-a3b-reasoning',
+    placeholder: 'nvapi-…',
+    free: true,
+    desc: 'NVIDIA Nemotron Nano Omni 30B via NVIDIA. Extended reasoning model — great for multi-step analysis.',
+    storageKey: 'scooby_api_key_nemotron',
+    temperature: 0.6,
+    top_p: 0.95,
+    max_tokens: 65536,
+    extraBody: { chat_template_kwargs: { enable_thinking: true }, reasoning_budget: 16384 },
+    timeoutMs: 120000,
+  },
 };
 
 /* ── CORS proxies ────────────────────────────────────────────────── */
