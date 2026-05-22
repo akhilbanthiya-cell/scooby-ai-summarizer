@@ -1438,6 +1438,100 @@
       border-radius:10px; padding:12px 14px; font-size:13px; color:#FCA5A5; margin-bottom:14px;
     }
 
+    /* ── Collections ──────────────────────────────────────────── */
+    .rsch-coll-toggle-btn {
+      padding:11px 16px; border-radius:12px; font-size:13px; font-weight:600;
+      background:rgba(124,58,237,.12); color:var(--accent-lt); border:1px solid rgba(124,58,237,.25);
+      cursor:pointer; transition:background .18s, border-color .18s; white-space:nowrap; font-family:inherit;
+    }
+    .rsch-coll-toggle-btn:hover { background:rgba(124,58,237,.22); border-color:rgba(124,58,237,.45); }
+    .rsch-coll-panel {
+      display:none; border:1px solid var(--border); border-radius:14px;
+      background:rgba(0,0,0,.25); margin-bottom:18px; overflow:hidden;
+    }
+    .rsch-coll-panel.open { display:block; }
+    .rsch-coll-panel-hdr {
+      display:flex; align-items:center; justify-content:space-between;
+      padding:12px 16px; border-bottom:1px solid var(--border);
+    }
+    .rsch-coll-panel-title { font-size:13px; font-weight:700; color:var(--txt); }
+    .rsch-coll-new-btn {
+      padding:6px 14px; border-radius:8px; font-size:12px; font-weight:600;
+      background:var(--accent); color:#fff; border:none; cursor:pointer;
+      transition:background .18s; font-family:inherit;
+    }
+    .rsch-coll-new-btn:hover { background:var(--accent-lt); }
+    .rsch-coll-list { max-height:320px; overflow-y:auto; }
+    .rsch-coll-empty { padding:24px 16px; text-align:center; font-size:13px; color:var(--txt3); }
+    .rsch-coll-row { border-bottom:1px solid var(--border); }
+    .rsch-coll-row:last-child { border-bottom:none; }
+    .rsch-coll-row-hdr {
+      display:flex; align-items:center; gap:10px; padding:12px 16px; cursor:pointer;
+      transition:background .15s;
+    }
+    .rsch-coll-row-hdr:hover { background:rgba(255,255,255,.03); }
+    .rsch-coll-icon { font-size:16px; flex-shrink:0; }
+    .rsch-coll-info { flex:1; min-width:0; }
+    .rsch-coll-name { font-size:13px; font-weight:600; color:var(--txt); }
+    .rsch-coll-desc {
+      font-size:11px; color:var(--txt3); margin-top:2px;
+      white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+    }
+    .rsch-coll-badge {
+      font-size:10px; font-weight:700; padding:2px 7px; border-radius:10px;
+      background:rgba(124,58,237,.15); color:var(--accent-lt); white-space:nowrap;
+    }
+    .rsch-coll-del-btn {
+      background:none; border:none; color:var(--txt3); cursor:pointer; font-size:13px;
+      padding:4px; border-radius:6px; transition:color .15s, background .15s; flex-shrink:0;
+    }
+    .rsch-coll-del-btn:hover { color:#ef4444; background:rgba(239,68,68,.08); }
+    .rsch-coll-expand { font-size:10px; color:var(--txt3); transition:transform .2s; flex-shrink:0; }
+    .rsch-coll-items-wrap { display:none; background:rgba(0,0,0,.15); }
+    .rsch-coll-items-wrap.open { display:block; }
+    .rsch-coll-item-row {
+      display:flex; align-items:flex-start; gap:10px; padding:10px 16px 10px 28px;
+      border-top:1px solid rgba(255,255,255,.04); transition:background .15s;
+    }
+    .rsch-coll-item-row:hover { background:rgba(255,255,255,.02); }
+    .rsch-coll-item-q { font-size:12px; color:var(--txt); flex:1; line-height:1.4; }
+    .rsch-coll-item-ts { font-size:10px; color:var(--txt3); white-space:nowrap; flex-shrink:0; }
+    .rsch-coll-item-rm {
+      background:none; border:none; color:var(--txt3); cursor:pointer; font-size:12px;
+      padding:2px 4px; border-radius:4px; flex-shrink:0; transition:color .15s;
+    }
+    .rsch-coll-item-rm:hover { color:#ef4444; }
+    .rsch-save-bar {
+      display:flex; align-items:center; gap:8px; margin-top:10px; padding-top:10px;
+      border-top:1px solid rgba(255,255,255,.06);
+    }
+    .rsch-save-btn {
+      padding:5px 12px; border-radius:8px; font-size:12px; font-weight:600;
+      background:rgba(124,58,237,.1); color:var(--accent-lt); border:1px solid rgba(124,58,237,.2);
+      cursor:pointer; font-family:inherit; transition:background .15s, border-color .15s; white-space:nowrap;
+    }
+    .rsch-save-btn:hover { background:rgba(124,58,237,.22); border-color:rgba(124,58,237,.4); }
+    .rsch-save-btn.saved { background:rgba(34,197,94,.1); color:#4ade80; border-color:rgba(34,197,94,.25); cursor:default; }
+    .rsch-coll-picker { position:relative; display:inline-block; }
+    .rsch-coll-dropdown {
+      position:absolute; left:0; top:calc(100% + 4px); z-index:200;
+      background:#1a1f35; border:1px solid var(--border); border-radius:12px;
+      min-width:210px; max-width:290px; box-shadow:0 8px 32px rgba(0,0,0,.5); overflow:hidden;
+    }
+    .rsch-coll-dropdown-item {
+      padding:9px 14px; font-size:13px; color:var(--txt2); cursor:pointer;
+      width:100%; border:none; background:none; text-align:left; font-family:inherit;
+      display:flex; align-items:center; justify-content:space-between; transition:background .15s;
+    }
+    .rsch-coll-dropdown-item:hover { background:rgba(124,58,237,.1); color:var(--txt); }
+    .rsch-coll-dropdown-sep { height:1px; background:var(--border); margin:4px 0; }
+    .rsch-coll-new-inline {
+      padding:9px 14px; font-size:12px; color:var(--accent-lt); cursor:pointer;
+      display:flex; align-items:center; gap:6px; border:none; background:none;
+      width:100%; text-align:left; font-family:inherit; font-weight:600; transition:background .15s;
+    }
+    .rsch-coll-new-inline:hover { background:rgba(124,58,237,.08); }
+
   </style>
 </head>
 <body>
@@ -1615,6 +1709,18 @@
           🔬 Deep
         </label>
         <button class="rsch-search-btn" onclick="spxSearch()" id="rsch-search-btn">Search</button>
+        <button class="rsch-coll-toggle-btn" onclick="toggleCollectionsPanel()">📁 Collections</button>
+      </div>
+
+      <!-- Collections panel -->
+      <div id="rsch-coll-panel" class="rsch-coll-panel">
+        <div class="rsch-coll-panel-hdr">
+          <span class="rsch-coll-panel-title">📁 Collections</span>
+          <button class="rsch-coll-new-btn" onclick="promptNewCollection()">+ New</button>
+        </div>
+        <div class="rsch-coll-list" id="rsch-coll-list">
+          <div class="rsch-coll-empty">No collections yet. Create one!</div>
+        </div>
       </div>
 
       <!-- Status bar -->
@@ -5246,8 +5352,9 @@ function copyAllDialSteps() {
 
 /* ── Superplexity Research Integration ──────────────────────────────── */
 (function () {
-  let _convId  = null;
-  let _running = false;
+  let _convId      = null;
+  let _running     = false;
+  let _collections = [];
 
   function _backend() {
     return (document.getElementById('rsch-backend-url')?.value?.trim() || 'http://localhost:8000').replace(/\/$/, '');
@@ -5308,6 +5415,172 @@ function copyAllDialSteps() {
     return `<div class="rsch-sources-label">Sources</div><div class="rsch-sources-grid">${cards}</div>`;
   }
 
+  /* ── Collections ─────────────────────────────────────────────── */
+
+  async function loadCollections() {
+    try {
+      const res = await fetch(_backend() + '/collections');
+      if (res.ok) _collections = await res.json();
+    } catch {}
+  }
+
+  function renderCollectionsPanel() {
+    const list = document.getElementById('rsch-coll-list');
+    if (!list) return;
+    if (!_collections.length) {
+      list.innerHTML = '<div class="rsch-coll-empty">No collections yet. Create one!</div>';
+      return;
+    }
+    list.innerHTML = _collections.map(c => `
+      <div class="rsch-coll-row" id="crow-${c.id}">
+        <div class="rsch-coll-row-hdr" onclick="toggleCollItems(${c.id})">
+          <span class="rsch-coll-icon">📁</span>
+          <div class="rsch-coll-info">
+            <div class="rsch-coll-name">${c.name}</div>
+            ${c.description ? `<div class="rsch-coll-desc">${c.description}</div>` : ''}
+          </div>
+          <span class="rsch-coll-badge">${c.item_count} item${c.item_count !== 1 ? 's' : ''}</span>
+          <button class="rsch-coll-del-btn" onclick="deleteCollection(${c.id}, event)" title="Delete">🗑</button>
+          <span class="rsch-coll-expand" id="cexp-${c.id}">▶</span>
+        </div>
+        <div class="rsch-coll-items-wrap" id="citems-${c.id}"></div>
+      </div>
+    `).join('');
+  }
+
+  window.toggleCollectionsPanel = function () {
+    const panel = document.getElementById('rsch-coll-panel');
+    if (!panel) return;
+    const isOpen = panel.classList.toggle('open');
+    if (isOpen) loadCollections().then(renderCollectionsPanel);
+  };
+
+  window.toggleCollItems = async function (collId) {
+    const wrap = document.getElementById('citems-' + collId);
+    const exp  = document.getElementById('cexp-' + collId);
+    if (!wrap) return;
+    const isOpen = wrap.classList.toggle('open');
+    if (exp) exp.style.transform = isOpen ? 'rotate(90deg)' : '';
+    if (!isOpen) return;
+    wrap.innerHTML = '<div style="padding:10px 16px;font-size:12px;color:var(--txt3)">Loading…</div>';
+    try {
+      const res   = await fetch(_backend() + '/collections/' + collId + '/items');
+      const items = res.ok ? await res.json() : [];
+      if (!items.length) {
+        wrap.innerHTML = '<div style="padding:10px 16px 12px;font-size:12px;color:var(--txt3)">No items yet</div>';
+        return;
+      }
+      wrap.innerHTML = items.map(it => `
+        <div class="rsch-coll-item-row">
+          <div class="rsch-coll-item-q">${it.query || '(no query)'}</div>
+          <span class="rsch-coll-item-ts">${_fmtDate(it.added_at)}</span>
+          <button class="rsch-coll-item-rm" onclick="removeFromCollection(${collId}, ${it.message_id}, event)" title="Remove">✕</button>
+        </div>
+      `).join('');
+    } catch {
+      wrap.innerHTML = '<div style="padding:10px 16px;font-size:12px;color:#ef4444">Failed to load</div>';
+    }
+  };
+
+  window.deleteCollection = async function (collId, e) {
+    e.stopPropagation();
+    if (!confirm('Delete this collection?')) return;
+    await fetch(_backend() + '/collections/' + collId, { method: 'DELETE' });
+    await loadCollections();
+    renderCollectionsPanel();
+  };
+
+  window.removeFromCollection = async function (collId, msgId, e) {
+    e.stopPropagation();
+    await fetch(_backend() + '/collections/' + collId + '/items/' + msgId, { method: 'DELETE' });
+    document.getElementById('citems-' + collId)?.classList.remove('open');
+    const exp = document.getElementById('cexp-' + collId);
+    if (exp) exp.style.transform = '';
+    window.toggleCollItems(collId);
+  };
+
+  window.promptNewCollection = async function () {
+    const name = prompt('Collection name:');
+    if (!name?.trim()) return;
+    const desc = prompt('Description (optional):') || '';
+    const res = await fetch(_backend() + '/collections', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: name.trim(), description: desc.trim() || null }),
+    });
+    if (res.ok) { await loadCollections(); renderCollectionsPanel(); }
+  };
+
+  window.openCollPicker = async function (msgId, btn) {
+    const drop = document.getElementById('rsch-drop-' + msgId);
+    if (!drop) return;
+    const isOpen = drop.style.display !== 'none';
+    document.querySelectorAll('.rsch-coll-dropdown').forEach(d => d.style.display = 'none');
+    if (isOpen) return;
+    if (!_collections.length) await loadCollections();
+    drop.innerHTML = [
+      ..._collections.map(c =>
+        `<button class="rsch-coll-dropdown-item" onclick="saveToCollection(${msgId},${c.id})">${c.name}<span style="color:var(--txt3);font-size:11px">${c.item_count}</span></button>`
+      ),
+      _collections.length ? '<div class="rsch-coll-dropdown-sep"></div>' : '',
+      `<button class="rsch-coll-new-inline" onclick="newCollThenSave(${msgId})">＋ New Collection</button>`,
+    ].join('');
+    drop.style.display = 'block';
+  };
+
+  window.saveToCollection = async function (msgId, collId) {
+    const res = await fetch(_backend() + '/collections/items', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ collection_id: collId, message_id: msgId }),
+    });
+    document.querySelectorAll('.rsch-coll-dropdown').forEach(d => d.style.display = 'none');
+    const saveBtn = document.getElementById('rsch-savebtn-' + msgId);
+    if (saveBtn && res.ok) {
+      saveBtn.textContent = '✓ Saved';
+      saveBtn.classList.add('saved');
+      saveBtn.disabled = true;
+    }
+    await loadCollections();
+    if (document.getElementById('rsch-coll-panel')?.classList.contains('open')) {
+      renderCollectionsPanel();
+    }
+  };
+
+  window.newCollThenSave = async function (msgId) {
+    document.querySelectorAll('.rsch-coll-dropdown').forEach(d => d.style.display = 'none');
+    const name = prompt('New collection name:');
+    if (!name?.trim()) return;
+    const res = await fetch(_backend() + '/collections', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: name.trim(), description: null }),
+    });
+    if (res.ok) {
+      const coll = await res.json();
+      await window.saveToCollection(msgId, coll.id);
+    }
+  };
+
+  function _renderSaveBar(msgId) {
+    return `<div class="rsch-coll-picker">
+      <button class="rsch-save-btn" id="rsch-savebtn-${msgId}" onclick="openCollPicker(${msgId}, this)">📁 Save to Collection</button>
+      <div class="rsch-coll-dropdown" id="rsch-drop-${msgId}" style="display:none"></div>
+    </div>`;
+  }
+
+  function _fmtDate(ts) {
+    if (!ts) return '';
+    try { return new Date(ts).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }); }
+    catch { return String(ts).slice(0, 10); }
+  }
+
+  document.addEventListener('click', function () {
+    document.querySelectorAll('.rsch-coll-dropdown').forEach(d => d.style.display = 'none');
+  });
+
+  /* ─────────────────────────────────────────────────────────────── */
+
   window.spxFollowUp = function (question) {
     const inp = document.getElementById('rsch-query');
     if (inp) { inp.value = question; window.spxSearch(); }
@@ -5350,7 +5623,8 @@ function copyAllDialSteps() {
         <div class="rsch-thinking-body"></div>
       </div>
       <div id="${pid}-ans" class="rsch-answer"></div>
-      <div id="${pid}-fu"></div>`;
+      <div id="${pid}-fu"></div>
+      <div id="${pid}-save" class="rsch-save-bar" style="display:none"></div>`;
     conv.appendChild(pair);
     pair.scrollIntoView({ behavior: 'smooth', block: 'start' });
 
@@ -5437,6 +5711,13 @@ function copyAllDialSteps() {
               fuEl.innerHTML = '<div class="rsch-followup-label">Follow-up</div><div class="rsch-followup-row">' +
                 qs.map(q => `<button class="rsch-followup-chip" onclick="spxFollowUp(${JSON.stringify(q)})">${q}</button>`).join('') +
                 '</div>';
+            }
+            if (ev.message_id != null) {
+              const saveDiv = document.getElementById(pid + '-save');
+              if (saveDiv) {
+                saveDiv.style.display = 'flex';
+                saveDiv.innerHTML = _renderSaveBar(ev.message_id);
+              }
             }
             _setStatus(null);
 
