@@ -933,19 +933,28 @@
 
     /* ── Summary action bar ─────────────────────────────────────── */
     .sum-action-bar {
-      display: flex; gap: 8px; flex-wrap: wrap; margin-top: 20px; padding: 0 2px;
+      display: flex; gap: 7px; flex-wrap: wrap;
+      margin-top: 20px; padding: 14px 16px;
+      background: rgba(0,0,0,.28); border: 1px solid rgba(255,255,255,.07);
+      border-radius: 18px; backdrop-filter: blur(8px);
     }
     .act-btn {
       display: flex; align-items: center; gap: 6px;
-      padding: 9px 16px; border-radius: 10px;
-      background: var(--card); border: 1px solid var(--border);
+      padding: 8px 15px; border-radius: 10px;
+      background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.09);
       color: var(--txt2); font-size: 13px; font-weight: 600;
-      cursor: pointer; transition: all .2s; white-space: nowrap;
+      cursor: pointer; transition: background .18s, border-color .18s, color .18s, transform .15s, box-shadow .18s;
+      white-space: nowrap; font-family: inherit;
     }
-    .act-btn:hover { border-color: var(--accent); color: var(--txt); }
-    .act-btn.liked    { background: rgba(16,185,129,.12); border-color: var(--green); color: var(--green); }
-    .act-btn.disliked { background: rgba(239,68,68,.08); border-color: rgba(239,68,68,.4); color: var(--red); }
-    .act-btn.active   { background: var(--accent-dim); border-color: var(--accent); color: var(--accent-lt); }
+    .act-btn:hover {
+      background: rgba(124,58,237,.1); border-color: rgba(124,58,237,.35);
+      color: var(--txt); transform: translateY(-1px);
+      box-shadow: 0 4px 14px rgba(0,0,0,.25);
+    }
+    .act-btn:active { transform: translateY(0); box-shadow: none; }
+    .act-btn.liked    { background: rgba(16,185,129,.12); border-color: rgba(16,185,129,.35); color: #34d399; }
+    .act-btn.disliked { background: rgba(239,68,68,.09);  border-color: rgba(239,68,68,.38);  color: #FCA5A5; }
+    .act-btn.active   { background: rgba(124,58,237,.15); border-color: var(--accent); color: var(--accent-lt); box-shadow: 0 0 14px rgba(124,58,237,.22); }
 
     /* ── Podcast Panel ──────────────────────────────────────────── */
     .podcast-panel {
@@ -2062,7 +2071,7 @@
       <button class="act-btn" id="podcast-btn" onclick="openPodcast()">🎙️ Create Podcast</button>
       <button class="act-btn" onclick="openInfographic()">📊 Infographic</button>
       <button class="act-btn" onclick="openStoryVideo()">🎬 Story Video</button>
-      <button class="act-btn" onclick="resetApp()" style="margin-left:auto">🔄 New Summary</button>
+      <button class="act-btn" onclick="resetApp()" style="margin-left:auto;background:rgba(124,58,237,.14);border-color:rgba(124,58,237,.35);color:var(--accent-lt)">🔄 New Summary</button>
     </div>
 
     <!-- Podcast Player -->
