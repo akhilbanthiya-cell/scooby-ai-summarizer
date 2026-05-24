@@ -1794,6 +1794,48 @@
       width:100%; text-align:left; font-family:inherit; font-weight:600; transition:background .15s;
     }
     .rsch-coll-new-inline:hover { background:rgba(124,58,237,.1); }
+    .rsch-spx-badge {
+      display:inline-flex; align-items:center; gap:5px; margin-left:10px;
+      font-size:11px; font-weight:700; color:#34d399;
+      background:rgba(16,185,129,.08); border:1px solid rgba(16,185,129,.2);
+      border-radius:20px; padding:3px 11px; white-space:nowrap; flex-shrink:0;
+    }
+    .rsch-spx-badge::before { content:'●'; font-size:8px; }
+    .rsch-export-btn {
+      padding:6px 13px; border-radius:9px; font-size:12px; font-weight:600;
+      background:rgba(16,185,129,.1); color:#34d399; border:1px solid rgba(16,185,129,.22);
+      cursor:pointer; font-family:inherit; white-space:nowrap;
+      display:flex; align-items:center; gap:5px;
+      transition:background .15s, border-color .15s, transform .12s;
+    }
+    .rsch-export-btn:hover { background:rgba(16,185,129,.2); border-color:rgba(16,185,129,.4); transform:translateY(-1px); }
+    .rsch-compare-btn {
+      display:inline-flex; align-items:center; gap:6px;
+      margin-top:10px; padding:7px 14px; border-radius:9px; font-size:12px; font-weight:600;
+      background:rgba(245,158,11,.1); color:#fbbf24; border:1px solid rgba(245,158,11,.22);
+      cursor:pointer; font-family:inherit; white-space:nowrap;
+      transition:background .15s, border-color .15s, transform .12s;
+    }
+    .rsch-compare-btn:hover { background:rgba(245,158,11,.2); border-color:rgba(245,158,11,.4); transform:translateY(-1px); }
+    .rsch-compare-btn:disabled { opacity:.45; cursor:not-allowed; transform:none; }
+    .rsch-compare-wrap { margin-top:12px; }
+    .rsch-compare-card { border:1px solid rgba(245,158,11,.2); border-radius:14px; overflow:hidden; }
+    .rsch-compare-hdr {
+      padding:10px 16px; font-size:11px; font-weight:700; text-transform:uppercase;
+      letter-spacing:.09em; color:#fbbf24;
+      background:linear-gradient(135deg, rgba(245,158,11,.12), rgba(245,158,11,.04));
+      border-bottom:1px solid rgba(245,158,11,.15); display:flex; align-items:center; gap:7px;
+    }
+    .rsch-compare-body {
+      padding:16px 18px; font-size:14px; color:var(--txt2); line-height:1.78;
+      background:rgba(0,0,0,.1);
+    }
+    .rsch-compare-body p { margin-bottom:10px; }
+    .rsch-compare-body p:last-child { margin-bottom:0; }
+    .rsch-compare-body strong { color:#fff; font-weight:700; }
+    .rsch-compare-body h2 { font-size:15px; font-weight:800; margin:16px 0 6px; color:#fff; }
+    .rsch-compare-body h3 { font-size:13px; font-weight:700; margin:12px 0 5px; color:var(--txt); }
+    .rsch-compare-loading { padding:18px; font-size:13px; color:var(--txt3); text-align:center; }
 
   </style>
 </head>
@@ -1960,8 +2002,7 @@
       <div class="rsch-config-row">
         <span class="rsch-config-label">Backend:</span>
         <input type="text" id="rsch-backend-url" value="http://localhost:8000" class="rsch-url-input" placeholder="http://localhost:8000" />
-        <span class="rsch-config-label" style="margin-left:12px">Tavily:</span>
-        <input type="password" id="rsch-tavily-key" class="rsch-url-input" placeholder="tvly-… (required for web search)" style="flex:1;min-width:180px" />
+        <span class="rsch-spx-badge">Superplexity</span>
       </div>
 
       <!-- Search bar -->
@@ -5849,7 +5890,52 @@ function copyAllDialSteps() {
     return `<div class="rsch-coll-picker">
       <button class="rsch-save-btn" id="rsch-savebtn-${msgId}" onclick="openCollPicker(${msgId}, this)">📁 Save to Collection</button>
       <div class="rsch-coll-dropdown" id="rsch-drop-${msgId}" style="display:none"></div>
-    </div>`;
+    </div>
+    <button class="rsch-export-btn" onclick="spxExport(${msgId})">⬇️ Export MD</button>`;
+  }
+
+  async function spxExport(msgId) {
+    try {
+      const res = await fetch(_backend() + '/api/export', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message_id: msgId, format: 'markdown' }),
+      });
+      if (!res.ok) throw new Error('Server returned ' + res.status);
+      const blob = await res.blob();
+      const url  = URL.createObjectURL(blob);
+      const a    = document.createElement('a');
+      a.href = url; a.download = `research_${msgId}.md`;
+      document.body.appendChild(a); a.click();
+      document.body.removeChild(a); URL.revokeObjectURL(url);
+    } catch (err) {
+      if (typeof toast === 'function') toast('Export failed: ' + err.message, 'err');
+    }
+  }
+
+  async function spxCompare(topic, urls, pid, triggerBtn) {
+    const compEl = document.getElementById(pid + '-comp');
+    if (!compEl) return;
+    if (triggerBtn) { triggerBtn.disabled = true; triggerBtn.textContent = '⏳ Comparing…'; }
+    compEl.style.display = 'block';
+    compEl.innerHTML = '<div class="rsch-compare-card"><div class="rsch-compare-loading">⏳ Comparing sources — this may take a moment…</div></div>';
+    try {
+      const res = await fetch(_backend() + '/api/compare', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ topic, source_urls: urls }),
+      });
+      if (!res.ok) throw new Error('Server returned ' + res.status);
+      const data = await res.json();
+      compEl.innerHTML = `<div class="rsch-compare-card">
+        <div class="rsch-compare-hdr">🔀 Source Comparison</div>
+        <div class="rsch-compare-body">${_md(data.comparison)}</div>
+      </div>`;
+    } catch (err) {
+      compEl.innerHTML = `<div class="rsch-error">⚠ Compare failed: ${err.message}</div>`;
+    } finally {
+      if (triggerBtn) { triggerBtn.disabled = false; triggerBtn.textContent = '🔀 Compare Sources'; }
+    }
   }
 
   function _fmtDate(ts) {
@@ -5906,6 +5992,7 @@ function copyAllDialSteps() {
         <div class="rsch-thinking-body"></div>
       </div>
       <div id="${pid}-ans" class="rsch-answer"></div>
+      <div id="${pid}-comp" class="rsch-compare-wrap" style="display:none"></div>
       <div id="${pid}-fu"></div>
       <div id="${pid}-save" class="rsch-save-bar" style="display:none"></div>`;
     conv.appendChild(pair);
@@ -5922,13 +6009,9 @@ function copyAllDialSteps() {
 
     try {
       const endpoint = isDeep ? '/api/research' : '/api/search';
-      const _ak = localStorage.getItem('scooby_api_key_anthropic') || '';
-      const _ok = localStorage.getItem('scooby_api_key_openai') || '';
-      const _tk = document.getElementById('rsch-tavily-key')?.value?.trim() || localStorage.getItem('scooby_tavily_key') || '';
-      const _keys = { ...(_ak ? { anthropic_key: _ak } : {}), ...(_ok ? { openai_key: _ok } : {}), ...(_tk ? { tavily_key: _tk } : {}) };
       const body = isDeep
-        ? { topic: query, ..._keys }
-        : { query, ...(_convId ? { conversation_id: _convId } : {}), ..._keys };
+        ? { topic: query }
+        : { query, ...(_convId ? { conversation_id: _convId } : {}) };
 
       const resp = await fetch(backend + endpoint, {
         method: 'POST',
@@ -5977,6 +6060,13 @@ function copyAllDialSteps() {
 
           } else if (ev.type === 'sources') {
             srcEl.innerHTML = _renderSources(ev.sources);
+            if (ev.sources.length >= 2) {
+              const compareBtn = document.createElement('button');
+              compareBtn.className = 'rsch-compare-btn';
+              compareBtn.textContent = '🔀 Compare Sources';
+              compareBtn.onclick = () => spxCompare(query, ev.sources.slice(0, 5).map(s => s.url), pid, compareBtn);
+              srcEl.appendChild(compareBtn);
+            }
 
           } else if (ev.type === 'thinking_chunk') {
             thinkBuf += ev.content || '';
